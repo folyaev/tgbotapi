@@ -1,0 +1,45 @@
+services:
+  tgbotapi:
+    image: aiogram/telegram-bot-api:latest
+    container_name: tgbotapi
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    entrypoint: ["telegram-bot-api"]
+    command:
+      - --api-id=25126209
+      - --api-hash=433fd37afcdfff1068ed0c4f9af1b6c5
+      - --http-port=8081
+      - --dir=/var/lib/telegram-bot-api
+      - --temp-dir=/tmp/telegram-bot-api
+      - --verbosity=2
+      - --local
+    volumes:
+      - tgbotapi_data:/var/lib/telegram-bot-api
+
+
+  utmanager:
+    build:
+      context: .              # <— корень проекта
+      dockerfile: Dockerfile  # <— явно указываем путь
+    container_name: utmanager
+    restart: unless-stopped
+    depends_on:
+      - tgbotapi
+    env_file:
+      - ./.env
+    environment:
+      LANG: "C.UTF-8"
+      LC_ALL: "C.UTF-8"
+      PYTHONIOENCODING: "UTF-8"
+      PYTHONUTF8: "1"
+    volumes:
+      - tgbotapi_data:/var/lib/telegram-bot-api     # общий том с tgbotapi
+      - "C:/Users/Nemifist/YandexDisk/PAMPAM:/data/PAMPAM"   # сюда бот будет сохранять файлы (BASE_ROOT=/data/PAMPAM)
+      - ./utmanager:/app/utmanager:rw           # <- горячая правка кода (необязательно, но удобно)
+
+volumes:
+  tgbotapi_data:
+
+
+
