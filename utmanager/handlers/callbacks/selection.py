@@ -22,7 +22,7 @@ from utmanager.db import (
     item_update_topic_id,
     selection_set,
 )
-from utmanager.ui import add_reaction_done, kb_for_progress
+from utmanager.ui import add_reaction_done, kb_for_progress, kb_for_topic_picker
 
 from .common import _safe_answer, log
 
@@ -205,7 +205,7 @@ async def cb_reopen(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         await ctx.bot.edit_message_reply_markup(
             chat_id=chat_id,
             message_id=msg.message_id,
-            reply_markup=kb_for_progress(chat_id, progress_msg_id, bucket),
+            reply_markup=kb_for_topic_picker(chat_id, progress_msg_id, bucket),
         )
     except Exception:
         pass

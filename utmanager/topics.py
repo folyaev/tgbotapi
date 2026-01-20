@@ -31,14 +31,15 @@ def topics_ordered(chat_id: int, bucket: str) -> List[Tuple[int, str]]:
         return (mtime, topic_id)
     return sorted(rows, key=sort_key, reverse=True)
 
-def sync_topics_from_fs(chat_id: int, bucket: str) -> int:
+def sync_topics_from_fs(chat_id: int, bucket: str, *, prune: bool = False) -> int:
     names = set(fs_topics_for(bucket))
     existing: List[Tuple[int, str]] = topics_all(chat_id, bucket)
     existing_names: Set[str] = {name for _, name in existing}
 
-    for topic_id, name in existing:
-        if name not in names:
-            topic_delete(chat_id, bucket, topic_id)
+    if prune:
+        for topic_id, name in existing:
+            if name not in names:
+                topic_delete(chat_id, bucket, topic_id)
 
     added = 0
     for name in names:

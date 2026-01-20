@@ -37,7 +37,10 @@ from utmanager.handlers.callbacks import (
     cb_browse_page,
     cb_item_action,
     cb_item_edit,
+    cb_item_newtopic,
+    cb_item_pick,
     cb_item_refresh,
+    cb_item_topics_page,
     cb_new,
     cb_newtopic_action,
     cb_noop,
@@ -232,6 +235,9 @@ def build_app():
 
     application.add_handler(CallbackQueryHandler(handle_link_decision, pattern=r"^link:(save|cancel):\d+$"))
     application.add_handler(CallbackQueryHandler(cb_pick, pattern=r"^pick:\d+:\d+$"))
+    application.add_handler(CallbackQueryHandler(cb_item_pick, pattern=r"^itempick:\d+:-?\d+:\d+:\d+$"))
+    application.add_handler(CallbackQueryHandler(cb_item_topics_page, pattern=r"^itemtopics:\d+:-?\d+:\d+:\d+$"))
+    application.add_handler(CallbackQueryHandler(cb_item_newtopic, pattern=r"^itemnew:\d+:-?\d+:\d+$"))
     application.add_handler(CallbackQueryHandler(cb_new, pattern=r"^new:\d+$"))
     application.add_handler(CallbackQueryHandler(cb_newtopic_action, pattern=r"^newtopic:(create|resync):.+$"))
     application.add_handler(CallbackQueryHandler(cb_topic_addtags, pattern=r"^topic:addtags:\d+:.+$"))

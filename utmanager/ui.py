@@ -179,6 +179,77 @@ def kb_for_topic_picker(chat_id: int, progress_msg_id: int, bucket: str) -> Inli
     return InlineKeyboardMarkup(buttons)
 
 
+def kb_for_item_topic_picker(
+    item_chat_id: int,
+    card_message_id: int,
+    bucket: str,
+    *,
+    item_message_id: int,
+) -> InlineKeyboardMarkup:
+    buttons: List[List[InlineKeyboardButton]] = []
+
+    try:
+        sync_topics_from_fs(item_chat_id, bucket)
+    except Exception:
+        pass
+
+    per_page = 6
+    topics_list = topics_ordered(item_chat_id, bucket)
+    total = len(topics_list)
+    page = db_ui_get_page(item_chat_id, card_message_id)
+    pages = max(1, (total + per_page - 1) // per_page)
+    page = min(page, pages - 1)
+
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                "Оставить без темы",
+                callback_data=f"itempick:{card_message_id}:{item_chat_id}:{item_message_id}:0",
+            )
+        ]
+    )
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                "+ New topic",
+                callback_data=f"itemnew:{card_message_id}:{item_chat_id}:{item_message_id}",
+            )
+        ]
+    )
+    start = page * per_page
+    end = start + per_page
+    for topic_id, name in topics_list[start:end]:
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    name,
+                    callback_data=f"itempick:{card_message_id}:{item_chat_id}:{item_message_id}:{topic_id}",
+                )
+            ]
+        )
+
+    if pages > 1:
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    "<",
+                    callback_data=(
+                        f"itemtopics:{card_message_id}:{item_chat_id}:{item_message_id}:{max(0, page - 1)}"
+                    ),
+                ),
+                InlineKeyboardButton(f"{page + 1}/{pages}", callback_data="noop"),
+                InlineKeyboardButton(
+                    ">",
+                    callback_data=(
+                        f"itemtopics:{card_message_id}:{item_chat_id}:{item_message_id}:{min(pages - 1, page + 1)}"
+                    ),
+                ),
+            ]
+        )
+
+    return InlineKeyboardMarkup(buttons)
+
+
 def kb_reopen(progress_msg_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [[InlineKeyboardButton("Choose topic", callback_data=f"reopen:{progress_msg_id}")]]

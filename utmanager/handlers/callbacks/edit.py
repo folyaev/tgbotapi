@@ -10,7 +10,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
-from utmanager.config import TZ, TITLE_MAX_LEN, current_bucket, local_dt
+from utmanager.config import TZ, TITLE_MAX_LEN, bucket_root, current_bucket, local_dt
 from utmanager.db import (
     filemap_by_origin,
     filemap_get,
@@ -19,7 +19,10 @@ from utmanager.db import (
     item_set_tags,
     item_update_author,
     item_update_created_at,
+    item_update_bucket,
+    item_update_topic_id,
     item_update_title,
+    item_apply_topic_tags,
     pending_newtopic_clear,
     pending_newtopic_get,
     pending_newtopic_set,
@@ -44,6 +47,7 @@ from utmanager.ui import (
     _format_created_at,
     format_item_card,
     item_actions_keyboard,
+    kb_for_item_topic_picker,
     kb_for_progress,
     kb_for_topic_picker,
     schedule_autodelete,
@@ -51,7 +55,16 @@ from utmanager.ui import (
 
 from .common import _is_admin, _safe_answer, log, log_action
 
-__all__ = ["cb_item_action", "cb_item_edit", "cb_item_refresh", "editcard_cmd", "text_catcher"]
+__all__ = [
+    "cb_item_action",
+    "cb_item_edit",
+    "cb_item_refresh",
+    "cb_item_pick",
+    "cb_item_topics_page",
+    "cb_item_newtopic",
+    "editcard_cmd",
+    "text_catcher",
+]
 
 EDITCARD_STATE_KEY = "editcard_wait_link"
 
@@ -207,7 +220,12 @@ async def cb_item_action(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None
             await ctx.bot.edit_message_reply_markup(
                 chat_id=q.message.chat.id,
                 message_id=q.message.message_id,
-                reply_markup=kb_for_topic_picker(item_chat_id, q.message.message_id, bucket),
+                reply_markup=kb_for_item_topic_picker(
+                    item_chat_id,
+                    q.message.message_id,
+                    bucket,
+                    item_message_id=item_message_id,
+                ),
             )
         except Exception:
             pass
@@ -216,8 +234,10 @@ async def cb_item_action(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None
 
     if field == "save":
         file_info = filemap_by_origin(item_chat_id, item_message_id)
-        progress_msg_id = file_info[0] if file_info else (q.message.message_id if q.message else item_message_id)
-        bucket = file_info[2] if file_info else (item.get("bucket") or current_bucket(q.message.date))
+        progress_msg_id = q.message.message_id if q.message else item_message_id
+        bucket = item.get("bucket") or current_bucket(q.message.date)
+        if file_info and file_info[0] == progress_msg_id:
+            bucket = file_info[2] or bucket
         topic_id = int(item.get("topic_id", 0))
         await render_item_summary(
             ctx,
@@ -450,6 +470,132 @@ async def _handle_pending_topic_tags(
         log.debug("Failed to refresh topic summary after tags update", exc_info=True)
 
 
+async def cb_item_pick(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    q = update.callback_query
+    if not q or not q.message or not q.data:
+        return
+    await _safe_answer(q)
+
+    try:
+        _, card_s, item_chat_s, item_msg_s, topic_s = q.data.split(":")
+        card_message_id = int(card_s)
+        item_chat_id = int(item_chat_s)
+        item_message_id = int(item_msg_s)
+        topic_id = int(topic_s)
+    except ValueError:
+        return
+
+    item = item_get(item_chat_id, item_message_id)
+    if not item:
+        await reply_silent(q.message, "Карточка не найдена.")
+        return
+
+    bucket = item.get("bucket") or current_bucket(q.message.date)
+    topic_info = topic_get(topic_id) if topic_id else None
+    if topic_info:
+        bucket = topic_info[1] or bucket
+
+    item_update_topic_id(item_chat_id, item_message_id, topic_id)
+    item_update_bucket(item_chat_id, item_message_id, bucket)
+    if topic_id:
+        item_apply_topic_tags(item_chat_id, item_message_id, topic_id)
+
+    await render_item_card(
+        ctx,
+        chat_id=item_chat_id,
+        progress_msg_id=card_message_id,
+        topic_id=topic_id,
+        bucket=bucket,
+        origin_message_id=item_message_id,
+    )
+
+
+async def cb_item_topics_page(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    q = update.callback_query
+    if not q or not q.message or not q.data:
+        return
+    await _safe_answer(q)
+
+    try:
+        _, card_s, item_chat_s, item_msg_s, page_s = q.data.split(":")
+        card_message_id = int(card_s)
+        item_chat_id = int(item_chat_s)
+        item_message_id = int(item_msg_s)
+        page = int(page_s)
+    except ValueError:
+        return
+
+    from utmanager.db import ui_set_page as db_ui_set_page
+
+    db_ui_set_page(item_chat_id, card_message_id, page)
+    item = item_get(item_chat_id, item_message_id)
+    bucket = item.get("bucket") if item else current_bucket(q.message.date)
+    try:
+        await ctx.bot.edit_message_reply_markup(
+            chat_id=q.message.chat.id,
+            message_id=card_message_id,
+            reply_markup=kb_for_item_topic_picker(
+                item_chat_id,
+                card_message_id,
+                bucket or "",
+                item_message_id=item_message_id,
+            ),
+        )
+    except Exception:
+        pass
+
+
+async def cb_item_newtopic(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    q = update.callback_query
+    if not q or not q.message or not q.data:
+        return
+    await _safe_answer(q)
+
+    try:
+        _, card_s, item_chat_s, item_msg_s = q.data.split(":")
+        card_message_id = int(card_s)
+        item_chat_id = int(item_chat_s)
+        item_message_id = int(item_msg_s)
+    except ValueError:
+        return
+
+    msg: Message = cast(Message, q.message)
+    chat_id = msg.chat.id
+    user_id = q.from_user.id
+
+    item = item_get(item_chat_id, item_message_id)
+    bucket = (item.get("bucket") if item else "") or current_bucket(msg.date)
+
+    pending_item_edit_clear(chat_id, user_id)
+    pending_tags_clear(chat_id, user_id)
+    pending_newtopic_set(chat_id, user_id, card_message_id, item_message_id, bucket, msg.message_id)
+
+    prompt_kwargs = {
+        "message_thread_id": msg.message_thread_id,
+        "reply_to_message_id": msg.message_id,
+    }
+    try:
+        prompt = await send_silent_message(
+            ctx,
+            chat_id,
+            "Send the new topic name in the next message.",
+            **prompt_kwargs,
+        )
+    except BadRequest as exc:
+        if "message thread not found" not in str(exc).lower():
+            raise
+        prompt_kwargs.pop("message_thread_id", None)
+        prompt = await send_silent_message(
+            ctx,
+            chat_id,
+            "Send the new topic name in the next message.",
+            **prompt_kwargs,
+        )
+
+    pending_newtopic_set(chat_id, user_id, card_message_id, item_message_id, bucket, prompt.message_id)
+    await schedule_autodelete(ctx, chat_id, prompt.message_id, delay_s=30)
+
+
 async def text_catcher(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     msg = update.message
     if not msg or not update.effective_chat or not update.effective_user:
@@ -470,7 +616,11 @@ async def text_catcher(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
             await reply_silent(msg, "Имя темы пустое, попробуйте снова.")
             return
         topic_upsert(chat_id, bucket, name)
-        # folders are created on demand when files are saved
+        # Ensure folder exists so sync doesn't drop the new topic.
+        try:
+            (bucket_root(bucket) / name).mkdir(parents=True, exist_ok=True)
+        except Exception:
+            log.debug("Failed to create topic folder", exc_info=True)
         try:
             sync_topics_from_fs(chat_id, bucket)
         except Exception:
@@ -479,7 +629,15 @@ async def text_catcher(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         if progress_msg_id:
             try:
                 _cancel_followup_jobs(ctx, chat_id, progress_msg_id)
-                keyboard = kb_for_progress(chat_id, progress_msg_id, bucket)
+                if filemap_get(chat_id, progress_msg_id):
+                    keyboard = kb_for_progress(chat_id, progress_msg_id, bucket)
+                else:
+                    keyboard = kb_for_item_topic_picker(
+                        chat_id,
+                        progress_msg_id,
+                        bucket,
+                        item_message_id=source_message_id or progress_msg_id,
+                    )
                 await ctx.bot.edit_message_reply_markup(
                     chat_id=chat_id,
                     message_id=progress_msg_id,
