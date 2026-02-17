@@ -57,6 +57,11 @@ except Exception:
     conn.execute("ALTER TABLE topics ADD COLUMN bucket TEXT NOT NULL DEFAULT ''")
 
 conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_topics_unique ON topics(chat_id,bucket,name)")
+try:
+    conn.execute("SELECT archived FROM topics LIMIT 1")
+except Exception:
+    conn.execute("ALTER TABLE topics ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")
+conn.execute("CREATE INDEX IF NOT EXISTS idx_topics_visible ON topics(chat_id,bucket,archived,id)")
 
 
 
@@ -519,7 +524,7 @@ def db(q: str, *args: Any) -> sqlite3.Cursor:
 
 def topics_count(chat_id: int, bucket: str) -> int:
 
-    return db("SELECT COUNT(*) FROM topics WHERE chat_id=? AND bucket=?", chat_id, bucket).fetchone()[0]
+    return db("SELECT COUNT(*) FROM topics WHERE chat_id=? AND bucket=? AND archived=0", chat_id, bucket).fetchone()[0]
 
 
 
@@ -527,7 +532,7 @@ def topics_page(chat_id: int, bucket: str, page: int, per_page: int = 6) -> List
 
     return db(
 
-        "SELECT id,name FROM topics WHERE chat_id=? AND bucket=? "
+        "SELECT id,name FROM topics WHERE chat_id=? AND bucket=? AND archived=0 "
 
         "ORDER BY id DESC LIMIT ? OFFSET ?",
 
@@ -537,17 +542,31 @@ def topics_page(chat_id: int, bucket: str, page: int, per_page: int = 6) -> List
 
 
 
-def topics_all(chat_id: int, bucket: str) -> List[Tuple[int, str]]:
+def topics_all(chat_id: int, bucket: str, *, include_archived: bool = False) -> List[Tuple[int, str]]:
 
-    rows = db(
+    if include_archived:
 
-        "SELECT id,name FROM topics WHERE chat_id=? AND bucket=? ORDER BY id DESC",
+        rows = db(
 
-        chat_id,
+            "SELECT id,name FROM topics WHERE chat_id=? AND bucket=? ORDER BY id DESC",
 
-        bucket,
+            chat_id,
 
-    ).fetchall()
+            bucket,
+
+        ).fetchall()
+
+    else:
+
+        rows = db(
+
+            "SELECT id,name FROM topics WHERE chat_id=? AND bucket=? AND archived=0 ORDER BY id DESC",
+
+            chat_id,
+
+            bucket,
+
+        ).fetchall()
 
     return [(int(row[0]), row[1]) for row in rows]
 
@@ -566,6 +585,28 @@ def topic_get(topic_id: int) -> Optional[Tuple[int, str, str]]:
 
 
 def topic_create(chat_id: int, bucket: str, name: str) -> int:
+
+    existing_row = db(
+
+        "SELECT id FROM topics WHERE chat_id=? AND bucket=? AND name=? ORDER BY id DESC LIMIT 1",
+
+        chat_id,
+
+        bucket,
+
+        name,
+
+    ).fetchone()
+
+    if existing_row:
+
+        rid = int(existing_row[0])
+
+        with conn:
+
+            db("UPDATE topics SET archived=0 WHERE id=?", rid)
+
+        return rid
 
     template_row = db(
 
@@ -621,12 +662,33 @@ def topic_upsert(chat_id: int, bucket: str, name: str) -> None:
 
         db(
 
-            "INSERT OR IGNORE INTO topics(chat_id,bucket,name,created_at) VALUES(?,?,?,?)",
+            "UPDATE topics SET archived=0 WHERE chat_id=? AND bucket=? AND name=?",
+
+            chat_id, bucket, name
+
+        )
+
+        db(
+
+            "INSERT OR IGNORE INTO topics(chat_id,bucket,name,created_at,archived) VALUES(?,?,?,?,0)",
 
             chat_id, bucket, name, datetime.now(UTC).isoformat(timespec="seconds")
 
         )
 
+
+
+def topic_set_archived(chat_id: int, bucket: str, topic_id: int, archived: bool) -> None:
+
+    with conn:
+
+        db(
+            "UPDATE topics SET archived=? WHERE id=? AND chat_id=? AND bucket=?",
+            1 if archived else 0,
+            topic_id,
+            chat_id,
+            bucket,
+        )
 
 
 def topic_delete(chat_id: int, bucket: str, topic_id: int) -> None:

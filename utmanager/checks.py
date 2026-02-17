@@ -9,7 +9,7 @@ from utmanager.db import db, topic_tags
 
 def _topics_index() -> List[Tuple[int, int, str, str]]:
     return db(
-        "SELECT id,chat_id,bucket,name FROM topics ORDER BY bucket,name,chat_id"
+        "SELECT id,chat_id,bucket,name FROM topics WHERE archived=0 ORDER BY bucket,name,chat_id"
     ).fetchall()
 
 

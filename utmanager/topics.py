@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List, Set, Tuple
 
 from .config import bucket_root
-from .db import topics_all, topic_delete, topic_upsert
+from .db import topic_delete, topic_set_archived, topics_all, topic_upsert
 
 EXCLUDED_TOPIC_DIRS = {"UNSORTED", ".DS_Store", "__MACOSX"}
 
@@ -33,13 +33,17 @@ def topics_ordered(chat_id: int, bucket: str) -> List[Tuple[int, str]]:
 
 def sync_topics_from_fs(chat_id: int, bucket: str, *, prune: bool = False) -> int:
     names = set(fs_topics_for(bucket))
-    existing: List[Tuple[int, str]] = topics_all(chat_id, bucket)
+    existing: List[Tuple[int, str]] = topics_all(chat_id, bucket, include_archived=True)
     existing_names: Set[str] = {name for _, name in existing}
 
     if prune:
         for topic_id, name in existing:
             if name not in names:
                 topic_delete(chat_id, bucket, topic_id)
+    else:
+        for topic_id, name in existing:
+            if name not in names:
+                topic_set_archived(chat_id, bucket, topic_id, True)
 
     added = 0
     for name in names:
