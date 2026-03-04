@@ -36,7 +36,7 @@ from utmanager.db import (
     thread_topic_get,
 )
 from utmanager.jobs import close_selector_job, finalize_post_job
-from utmanager.storage import get_file_with_retry, local_abs_path_for, stream_download
+from utmanager.storage import get_file_by_id_with_retry, get_file_with_retry, local_abs_path_for, stream_download
 from utmanager.ui import (
     add_reaction_done,
     add_reaction_error,
@@ -1206,7 +1206,7 @@ async def download_item_content(
             file_id = entry.get("file_id")
             if not file_id:
                 continue
-            tg_file = await ctx.bot.get_file(file_id)
+            tg_file = await get_file_by_id_with_retry(ctx.bot, file_id)
             created_at = entry.get("created_at") or ""
             fallback_dt = None
             try:
