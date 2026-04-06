@@ -41,3 +41,10 @@ Layout
 Notes
 - Local Bot API container runs on `tgbotapi:8081` per `docker-compose.yml`.
 - Files are first saved to `BASE_ROOT/UNSORTED/<Category>` then moved on topic selection.
+- In `VBAUT`, `Newsroom` is no longer embedded on the main page; it lives on the separate route `http://localhost:5173/newsroom`.
+- In `VBAUT`, `Research` now lives on the separate route `http://localhost:5173/research` and the main workflow is a single ranked-list search, not `main/backup pair` selection.
+- `Research` reruns exclude duplicates already present in the document link list and previously seen URLs; it can optionally use parent topic title and saved theme tags.
+- `Source Registry` in `VBAUT` lives in `data/source-profiles.json` and stores both `domain_profiles` and `channel_profiles`, including metadata like language, RF blocking, watermarks, default quality and `screenshot_profiles`.
+- In `VBAUT` SDVG mode, research suggestions are sent as separate Telegram messages with per-link actions.
+- In `VBAUT` SDVG mode, downloadable links still go through the normal `yt-dlp/gallery-dl` flow; non-downloadable links are first added to topic links and then get a screenshot preview.
+- Screenshot preview in SDVG uses per-source browser presets: `+` attaches the screenshot to the segment, `-` dismisses the preview, `✖️` retries with different browser parameters and successful presets are saved back into `Source Registry`.
