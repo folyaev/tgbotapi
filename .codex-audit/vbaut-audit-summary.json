@@ -1,0 +1,1729 @@
+{
+  "api": {
+    "2026-04-06": {
+      "total": 33083,
+      "status_class": {
+        "3xx": 32618,
+        "2xx": 462,
+        "4xx": 3
+      },
+      "top_statuses": [
+        [
+          304,
+          32618
+        ],
+        [
+          200,
+          455
+        ],
+        [
+          201,
+          7
+        ],
+        [
+          404,
+          3
+        ]
+      ],
+      "error_paths": [
+        [
+          "/api/notion/progress/notion_1775478463691_c2rm1e",
+          1
+        ],
+        [
+          "/api/notion/progress/notion_1775482275102_gj3euq",
+          1
+        ],
+        [
+          "/api/documents/doc_2026-04-06T12-28-20-937Z_458283/segments/section_1xaanli_01_01/research",
+          1
+        ]
+      ],
+      "error_status_pairs": [
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/notion_1775478463691_c2rm1e"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/notion_1775482275102_gj3euq"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/documents/doc_2026-04-06T12-28-20-937Z_458283/segments/section_1xaanli_01_01/research"
+          },
+          1
+        ]
+      ],
+      "top_paths": [
+        [
+          "/api/source-profiles",
+          3627
+        ],
+        [
+          "/api/bot/sessions",
+          3626
+        ],
+        [
+          "/api/integration/sqlite/status",
+          3626
+        ],
+        [
+          "/api/source-memory",
+          3626
+        ],
+        [
+          "/api/release-outcome-memory",
+          3626
+        ],
+        [
+          "/api/assets",
+          3625
+        ],
+        [
+          "/api/integration/overview",
+          3625
+        ],
+        [
+          "/api/releases",
+          3625
+        ],
+        [
+          "/api/integration/backups/status",
+          3625
+        ],
+        [
+          "/api/audit/ui-actions",
+          77
+        ],
+        [
+          "/api/documents/doc_2026-04-06T12-28-20-937Z_458283/media",
+          68
+        ],
+        [
+          "/api/notion/progress/notion_1775486212284_zgqd7f",
+          60
+        ],
+        [
+          "/api/notion/progress/notion_1775478463691_c2rm1e",
+          54
+        ],
+        [
+          "/api/notion/progress/notion_1775482275102_gj3euq",
+          48
+        ],
+        [
+          "/api/documents",
+          40
+        ],
+        [
+          "/api/config",
+          33
+        ],
+        [
+          "/api/documents/doc_2026-04-06T12-28-20-937Z_458283",
+          25
+        ],
+        [
+          "/api/link/screenshot",
+          19
+        ],
+        [
+          "/api/documents/doc_2026-04-06T12-28-20-937Z_458283/session",
+          7
+        ],
+        [
+          "/api/notion/raw",
+          3
+        ]
+      ],
+      "duration": {
+        "avg_ms": 17.2,
+        "p95_ms": 10,
+        "max_ms": 41661
+      },
+      "slow_paths": [
+        {
+          "path": "/api/link/screenshot",
+          "count": 19,
+          "avg_ms": 11113.9,
+          "p95_ms": 22103,
+          "max_ms": 22103
+        },
+        {
+          "path": "/api/documents/doc_2026-04-06T12-28-20-937Z_458283/media",
+          "count": 68,
+          "avg_ms": 33.2,
+          "p95_ms": 57,
+          "max_ms": 121
+        },
+        {
+          "path": "/api/documents/doc_2026-04-06T12-28-20-937Z_458283/session",
+          "count": 7,
+          "avg_ms": 34.7,
+          "p95_ms": 54,
+          "max_ms": 54
+        },
+        {
+          "path": "/api/integration/backups/status",
+          "count": 3625,
+          "avg_ms": 10.6,
+          "p95_ms": 40,
+          "max_ms": 103
+        },
+        {
+          "path": "/api/documents",
+          "count": 40,
+          "avg_ms": 20.6,
+          "p95_ms": 40,
+          "max_ms": 80
+        },
+        {
+          "path": "/api/documents/doc_2026-04-06T12-28-20-937Z_458283",
+          "count": 25,
+          "avg_ms": 13.6,
+          "p95_ms": 16,
+          "max_ms": 73
+        },
+        {
+          "path": "/api/assets",
+          "count": 3625,
+          "avg_ms": 6.7,
+          "p95_ms": 11,
+          "max_ms": 23
+        },
+        {
+          "path": "/api/integration/overview",
+          "count": 3625,
+          "avg_ms": 3.6,
+          "p95_ms": 5,
+          "max_ms": 15
+        },
+        {
+          "path": "/api/audit/ui-actions",
+          "count": 77,
+          "avg_ms": 1.7,
+          "p95_ms": 4,
+          "max_ms": 15
+        },
+        {
+          "path": "/api/config",
+          "count": 33,
+          "avg_ms": 0.4,
+          "p95_ms": 3,
+          "max_ms": 3
+        },
+        {
+          "path": "/api/source-profiles",
+          "count": 3627,
+          "avg_ms": 0.5,
+          "p95_ms": 1,
+          "max_ms": 24
+        },
+        {
+          "path": "/api/source-memory",
+          "count": 3626,
+          "avg_ms": 0.7,
+          "p95_ms": 1,
+          "max_ms": 7
+        },
+        {
+          "path": "/api/integration/sqlite/status",
+          "count": 3626,
+          "avg_ms": 0.5,
+          "p95_ms": 1,
+          "max_ms": 6
+        },
+        {
+          "path": "/api/bot/sessions",
+          "count": 3626,
+          "avg_ms": 0.2,
+          "p95_ms": 1,
+          "max_ms": 3
+        },
+        {
+          "path": "/api/release-outcome-memory",
+          "count": 3626,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 3
+        },
+        {
+          "path": "/api/releases",
+          "count": 3625,
+          "avg_ms": 0.2,
+          "p95_ms": 1,
+          "max_ms": 3
+        },
+        {
+          "path": "/api/notion/progress/notion_1775486212284_zgqd7f",
+          "count": 60,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 1
+        },
+        {
+          "path": "/api/notion/progress/notion_1775478463691_c2rm1e",
+          "count": 54,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 1
+        },
+        {
+          "path": "/api/notion/progress/notion_1775482275102_gj3euq",
+          "count": 48,
+          "avg_ms": 0.4,
+          "p95_ms": 1,
+          "max_ms": 1
+        }
+      ]
+    },
+    "2026-04-07": {
+      "total": 60785,
+      "status_class": {
+        "2xx": 1198,
+        "3xx": 59579,
+        "4xx": 8
+      },
+      "top_statuses": [
+        [
+          304,
+          59579
+        ],
+        [
+          200,
+          1198
+        ],
+        [
+          404,
+          8
+        ]
+      ],
+      "error_paths": [
+        [
+          "/api/notion/progress/tg_notion_1775561854301_pytq30",
+          1
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775563123728_lzzq6g",
+          1
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775567165854_8xihrs",
+          1
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775570016353_2oe8ar",
+          1
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775571075594_228bxf",
+          1
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775575752333_fcl6wy",
+          1
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775577511589_wfdoec",
+          1
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775586211392_jqciki",
+          1
+        ]
+      ],
+      "error_status_pairs": [
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/tg_notion_1775561854301_pytq30"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/tg_notion_1775563123728_lzzq6g"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/tg_notion_1775567165854_8xihrs"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/tg_notion_1775570016353_2oe8ar"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/tg_notion_1775571075594_228bxf"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/tg_notion_1775575752333_fcl6wy"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/tg_notion_1775577511589_wfdoec"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/tg_notion_1775586211392_jqciki"
+          },
+          1
+        ]
+      ],
+      "top_paths": [
+        [
+          "/api/integration/overview",
+          6695
+        ],
+        [
+          "/api/assets",
+          6695
+        ],
+        [
+          "/api/integration/sqlite/status",
+          6695
+        ],
+        [
+          "/api/releases",
+          6695
+        ],
+        [
+          "/api/bot/sessions",
+          6695
+        ],
+        [
+          "/api/source-profiles",
+          6695
+        ],
+        [
+          "/api/source-memory",
+          6695
+        ],
+        [
+          "/api/release-outcome-memory",
+          6694
+        ],
+        [
+          "/api/integration/backups/status",
+          6693
+        ],
+        [
+          "/api/notion/progress/notion_1775565103001_lz5ukw",
+          76
+        ],
+        [
+          "/api/notion/progress/notion_1775565040387_v66scr",
+          58
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775575752333_fcl6wy",
+          49
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775567165854_8xihrs",
+          48
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775571075594_228bxf",
+          43
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775561854301_pytq30",
+          42
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775577511589_wfdoec",
+          39
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775586211392_jqciki",
+          39
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775563123728_lzzq6g",
+          38
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775570016353_2oe8ar",
+          36
+        ],
+        [
+          "/api/link/screenshot",
+          18
+        ]
+      ],
+      "duration": {
+        "avg_ms": 15.1,
+        "p95_ms": 12,
+        "max_ms": 58959
+      },
+      "slow_paths": [
+        {
+          "path": "/api/notion/raw",
+          "count": 10,
+          "avg_ms": 49082.2,
+          "p95_ms": 58959,
+          "max_ms": 58959
+        },
+        {
+          "path": "/api/link/screenshot",
+          "count": 18,
+          "avg_ms": 10796.9,
+          "p95_ms": 17085,
+          "max_ms": 17085
+        },
+        {
+          "path": "/api/integration/backups/status",
+          "count": 6693,
+          "avg_ms": 19.2,
+          "p95_ms": 78,
+          "max_ms": 119
+        },
+        {
+          "path": "/api/documents",
+          "count": 5,
+          "avg_ms": 15.2,
+          "p95_ms": 43,
+          "max_ms": 43
+        },
+        {
+          "path": "/api/documents/doc_2026-04-06T12-28-20-937Z_458283",
+          "count": 13,
+          "avg_ms": 10.2,
+          "p95_ms": 18,
+          "max_ms": 18
+        },
+        {
+          "path": "/api/documents/doc_2026-04-06T12-28-20-937Z_458283/segments/news_32/research/dismiss",
+          "count": 5,
+          "avg_ms": 12.0,
+          "p95_ms": 13,
+          "max_ms": 13
+        },
+        {
+          "path": "/api/assets",
+          "count": 6695,
+          "avg_ms": 8.0,
+          "p95_ms": 12,
+          "max_ms": 26
+        },
+        {
+          "path": "/api/integration/overview",
+          "count": 6695,
+          "avg_ms": 4.7,
+          "p95_ms": 7,
+          "max_ms": 11
+        },
+        {
+          "path": "/api/audit/ui-actions",
+          "count": 6,
+          "avg_ms": 1.7,
+          "p95_ms": 2,
+          "max_ms": 2
+        },
+        {
+          "path": "/api/integration/sqlite/status",
+          "count": 6695,
+          "avg_ms": 0.5,
+          "p95_ms": 1,
+          "max_ms": 5
+        },
+        {
+          "path": "/api/source-memory",
+          "count": 6695,
+          "avg_ms": 0.7,
+          "p95_ms": 1,
+          "max_ms": 5
+        },
+        {
+          "path": "/api/source-profiles",
+          "count": 6695,
+          "avg_ms": 0.5,
+          "p95_ms": 1,
+          "max_ms": 4
+        },
+        {
+          "path": "/api/releases",
+          "count": 6695,
+          "avg_ms": 0.2,
+          "p95_ms": 1,
+          "max_ms": 3
+        },
+        {
+          "path": "/api/bot/sessions",
+          "count": 6695,
+          "avg_ms": 0.2,
+          "p95_ms": 1,
+          "max_ms": 3
+        },
+        {
+          "path": "/api/release-outcome-memory",
+          "count": 6694,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 3
+        },
+        {
+          "path": "/api/notion/progress/notion_1775565103001_lz5ukw",
+          "count": 76,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 1
+        },
+        {
+          "path": "/api/notion/progress/notion_1775565040387_v66scr",
+          "count": 58,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 1
+        },
+        {
+          "path": "/api/notion/progress/tg_notion_1775575752333_fcl6wy",
+          "count": 49,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 1
+        },
+        {
+          "path": "/api/notion/progress/tg_notion_1775567165854_8xihrs",
+          "count": 48,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 1
+        },
+        {
+          "path": "/api/notion/progress/tg_notion_1775571075594_228bxf",
+          "count": 43,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 1
+        }
+      ]
+    },
+    "2026-04-08": {
+      "total": 75562,
+      "status_class": {
+        "3xx": 74240,
+        "2xx": 1315,
+        "4xx": 7
+      },
+      "top_statuses": [
+        [
+          304,
+          74240
+        ],
+        [
+          200,
+          1315
+        ],
+        [
+          404,
+          7
+        ]
+      ],
+      "error_paths": [
+        [
+          "/api/notion/progress/tg_notion_1775641060039_mor9gs",
+          1
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775646386828_ds0vxd",
+          1
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775658548814_j21ypt",
+          1
+        ],
+        [
+          "/api/notion/progress/notion_1775659688992_ew0kg0",
+          1
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775660557171_wwnlyp",
+          1
+        ],
+        [
+          "/api/notion/progress/notion_1775665645346_vyegaa",
+          1
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775671500416_eqqb5c",
+          1
+        ]
+      ],
+      "error_status_pairs": [
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/tg_notion_1775641060039_mor9gs"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/tg_notion_1775646386828_ds0vxd"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/tg_notion_1775658548814_j21ypt"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/notion_1775659688992_ew0kg0"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/tg_notion_1775660557171_wwnlyp"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/notion_1775665645346_vyegaa"
+          },
+          1
+        ],
+        [
+          {
+            "status": 404,
+            "path": "/api/notion/progress/tg_notion_1775671500416_eqqb5c"
+          },
+          1
+        ]
+      ],
+      "top_paths": [
+        [
+          "/api/assets",
+          8276
+        ],
+        [
+          "/api/integration/overview",
+          8276
+        ],
+        [
+          "/api/releases",
+          8276
+        ],
+        [
+          "/api/bot/sessions",
+          8276
+        ],
+        [
+          "/api/integration/sqlite/status",
+          8276
+        ],
+        [
+          "/api/source-profiles",
+          8276
+        ],
+        [
+          "/api/source-memory",
+          8276
+        ],
+        [
+          "/api/release-outcome-memory",
+          8276
+        ],
+        [
+          "/api/integration/backups/status",
+          8273
+        ],
+        [
+          "/api/notion/progress/notion_1775669837305_hwnwoo",
+          152
+        ],
+        [
+          "/api/notion/progress/notion_1775673804020_fyblap",
+          149
+        ],
+        [
+          "/api/notion/progress/notion_1775665645346_vyegaa",
+          117
+        ],
+        [
+          "/api/notion/progress/notion_1775669375770_2oxzf6",
+          115
+        ],
+        [
+          "/api/notion/progress/notion_1775659688992_ew0kg0",
+          113
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775671500416_eqqb5c",
+          82
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775660557171_wwnlyp",
+          59
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775646386828_ds0vxd",
+          55
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775658548814_j21ypt",
+          55
+        ],
+        [
+          "/api/link/screenshot",
+          42
+        ],
+        [
+          "/api/notion/progress/tg_notion_1775641060039_mor9gs",
+          39
+        ]
+      ],
+      "duration": {
+        "avg_ms": 21.4,
+        "p95_ms": 19,
+        "max_ms": 105992
+      },
+      "slow_paths": [
+        {
+          "path": "/api/notion/raw",
+          "count": 10,
+          "avg_ms": 79844.2,
+          "p95_ms": 105992,
+          "max_ms": 105992
+        },
+        {
+          "path": "/api/link/screenshot",
+          "count": 42,
+          "avg_ms": 8716.9,
+          "p95_ms": 19388,
+          "max_ms": 25534
+        },
+        {
+          "path": "/api/integration/backups/status",
+          "count": 8273,
+          "avg_ms": 28.8,
+          "p95_ms": 117,
+          "max_ms": 189
+        },
+        {
+          "path": "/api/documents/doc_2026-04-06T12-28-20-937Z_458283/media",
+          "count": 6,
+          "avg_ms": 47.3,
+          "p95_ms": 74,
+          "max_ms": 74
+        },
+        {
+          "path": "/api/documents",
+          "count": 14,
+          "avg_ms": 16.9,
+          "p95_ms": 41,
+          "max_ms": 41
+        },
+        {
+          "path": "/api/audit/ui-actions",
+          "count": 33,
+          "avg_ms": 3.6,
+          "p95_ms": 28,
+          "max_ms": 29
+        },
+        {
+          "path": "/api/documents/doc_2026-04-06T12-28-20-937Z_458283",
+          "count": 16,
+          "avg_ms": 15.1,
+          "p95_ms": 22,
+          "max_ms": 22
+        },
+        {
+          "path": "/api/assets",
+          "count": 8276,
+          "avg_ms": 13.4,
+          "p95_ms": 19,
+          "max_ms": 39
+        },
+        {
+          "path": "/api/integration/overview",
+          "count": 8276,
+          "avg_ms": 8.9,
+          "p95_ms": 13,
+          "max_ms": 22
+        },
+        {
+          "path": "/api/source-profiles",
+          "count": 8276,
+          "avg_ms": 0.6,
+          "p95_ms": 1,
+          "max_ms": 5
+        },
+        {
+          "path": "/api/source-memory",
+          "count": 8276,
+          "avg_ms": 0.8,
+          "p95_ms": 1,
+          "max_ms": 4
+        },
+        {
+          "path": "/api/releases",
+          "count": 8276,
+          "avg_ms": 0.2,
+          "p95_ms": 1,
+          "max_ms": 3
+        },
+        {
+          "path": "/api/integration/sqlite/status",
+          "count": 8276,
+          "avg_ms": 0.6,
+          "p95_ms": 1,
+          "max_ms": 3
+        },
+        {
+          "path": "/api/release-outcome-memory",
+          "count": 8276,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 3
+        },
+        {
+          "path": "/api/bot/sessions",
+          "count": 8276,
+          "avg_ms": 0.2,
+          "p95_ms": 1,
+          "max_ms": 2
+        },
+        {
+          "path": "/api/notion/progress/notion_1775669837305_hwnwoo",
+          "count": 152,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 1
+        },
+        {
+          "path": "/api/notion/progress/notion_1775673804020_fyblap",
+          "count": 149,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 1
+        },
+        {
+          "path": "/api/notion/progress/notion_1775665645346_vyegaa",
+          "count": 117,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 1
+        },
+        {
+          "path": "/api/notion/progress/notion_1775669375770_2oxzf6",
+          "count": 115,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 1
+        },
+        {
+          "path": "/api/notion/progress/notion_1775659688992_ew0kg0",
+          "count": 113,
+          "avg_ms": 0.4,
+          "p95_ms": 1,
+          "max_ms": 1
+        }
+      ]
+    },
+    "2026-04-09": {
+      "total": 65970,
+      "status_class": {
+        "3xx": 64960,
+        "2xx": 1010
+      },
+      "top_statuses": [
+        [
+          304,
+          64960
+        ],
+        [
+          200,
+          1010
+        ]
+      ],
+      "error_paths": [],
+      "error_status_pairs": [],
+      "top_paths": [
+        [
+          "/api/assets",
+          7327
+        ],
+        [
+          "/api/integration/overview",
+          7327
+        ],
+        [
+          "/api/integration/sqlite/status",
+          7326
+        ],
+        [
+          "/api/releases",
+          7326
+        ],
+        [
+          "/api/bot/sessions",
+          7326
+        ],
+        [
+          "/api/source-profiles",
+          7326
+        ],
+        [
+          "/api/source-memory",
+          7326
+        ],
+        [
+          "/api/release-outcome-memory",
+          7326
+        ],
+        [
+          "/api/integration/backups/status",
+          7324
+        ],
+        [
+          "/api/link/screenshot",
+          26
+        ],
+        [
+          "/api/audit/ui-actions",
+          4
+        ],
+        [
+          "/api/documents/doc_2026-04-06T12-28-20-937Z_458283/export",
+          2
+        ],
+        [
+          "/api/config",
+          1
+        ],
+        [
+          "/api/documents",
+          1
+        ],
+        [
+          "/api/documents/doc_2026-04-06T12-28-20-937Z_458283",
+          1
+        ],
+        [
+          "/api/documents/doc_2026-04-06T12-28-20-937Z_458283/media",
+          1
+        ]
+      ],
+      "duration": {
+        "avg_ms": 13.6,
+        "p95_ms": 26,
+        "max_ms": 22626
+      },
+      "slow_paths": [
+        {
+          "path": "/api/link/screenshot",
+          "count": 26,
+          "avg_ms": 9642.0,
+          "p95_ms": 21578,
+          "max_ms": 22626
+        },
+        {
+          "path": "/api/integration/backups/status",
+          "count": 7324,
+          "avg_ms": 50.2,
+          "p95_ms": 176,
+          "max_ms": 235
+        },
+        {
+          "path": "/api/assets",
+          "count": 7327,
+          "avg_ms": 19.5,
+          "p95_ms": 26,
+          "max_ms": 56
+        },
+        {
+          "path": "/api/integration/overview",
+          "count": 7327,
+          "avg_ms": 14.2,
+          "p95_ms": 19,
+          "max_ms": 49
+        },
+        {
+          "path": "/api/integration/sqlite/status",
+          "count": 7326,
+          "avg_ms": 0.6,
+          "p95_ms": 1,
+          "max_ms": 5
+        },
+        {
+          "path": "/api/source-memory",
+          "count": 7326,
+          "avg_ms": 0.8,
+          "p95_ms": 1,
+          "max_ms": 4
+        },
+        {
+          "path": "/api/source-profiles",
+          "count": 7326,
+          "avg_ms": 0.7,
+          "p95_ms": 1,
+          "max_ms": 3
+        },
+        {
+          "path": "/api/release-outcome-memory",
+          "count": 7326,
+          "avg_ms": 0.3,
+          "p95_ms": 1,
+          "max_ms": 3
+        },
+        {
+          "path": "/api/releases",
+          "count": 7326,
+          "avg_ms": 0.2,
+          "p95_ms": 1,
+          "max_ms": 2
+        },
+        {
+          "path": "/api/bot/sessions",
+          "count": 7326,
+          "avg_ms": 0.2,
+          "p95_ms": 1,
+          "max_ms": 2
+        }
+      ]
+    }
+  },
+  "ui": {
+    "2026-04-06": {
+      "total": 112,
+      "types": [
+        [
+          "click",
+          87
+        ],
+        [
+          "input",
+          15
+        ],
+        [
+          "change",
+          10
+        ]
+      ],
+      "paths": [
+        [
+          "/",
+          58
+        ],
+        [
+          "/research?doc_id=doc_2026-04-06T12-28-20-937Z_458283&segment_id=section_qnrgy6_01_01&run_id=research_1775487938417_qq9rJo",
+          19
+        ],
+        [
+          "/research?doc_id=doc_2026-04-06T12-28-20-937Z_458283&segment_id=topic_section_ey28jy_01&run_id=research_1775486522563_GU-lbp",
+          16
+        ],
+        [
+          "/research?doc_id=doc_2026-04-06T12-28-20-937Z_458283&segment_id=section_qnrgy6_01_01",
+          7
+        ],
+        [
+          "/research?doc_id=doc_2026-04-06T12-28-20-937Z_458283&segment_id=section_qnrgy6_01_01&run_id=research_1775487913704_76l1SA",
+          6
+        ],
+        [
+          "/research?doc_id=doc_2026-04-06T12-28-20-937Z_458283&segment_id=intro_01",
+          4
+        ],
+        [
+          "/research?doc_id=doc_2026-04-06T12-28-20-937Z_458283&segment_id=topic_section_ey28jy_01",
+          2
+        ]
+      ],
+      "targets": [
+        [
+          "input",
+          17
+        ],
+        [
+          "button | btn ghost small segment-group-expand segment-group-expand-icon | ▾",
+          8
+        ],
+        [
+          "button | btn ghost small | Перейти",
+          7
+        ],
+        [
+          "button | btn ghost icon-round",
+          5
+        ],
+        [
+          "select | intro_01 · Интро · Привет! Я Руслан Усачев и сегодня мы поговорим о самых интересных новостях и соб...news_01 · Безвиз С",
+          5
+        ],
+        [
+          "select | 2026-04-06 15:05 В· search В· 76 results2026-04-06 15:05 В· search В· 0 results",
+          5
+        ],
+        [
+          "button | btn ghost small | 🏷",
+          4
+        ],
+        [
+          "button | btn ghost small segment-group-expand-icon scenario-panel-toggle | ▾",
+          3
+        ],
+        [
+          "input | notion-url-input",
+          3
+        ],
+        [
+          "button | btn ghost | СегментироватьNEW",
+          3
+        ],
+        [
+          "button | btn small ghost",
+          3
+        ],
+        [
+          "button | btn ghost small | ✨",
+          3
+        ],
+        [
+          "button | btn ghost small | Research",
+          3
+        ],
+        [
+          "div | Research Workspacedoc_2026-04-06T12-28-20-937Z_458283Back To ScenarioSegmentintro_01 · Интро · Привет! Я Руслан Усачев и",
+          3
+        ],
+        [
+          "button | btn ghost small segment-group-expand segment-group-expand-icon | ▴",
+          2
+        ],
+        [
+          "button | btn ghost icon-btn notion-refresh-btn",
+          2
+        ],
+        [
+          "button | btn ghost small | 🔗+",
+          2
+        ],
+        [
+          "button | btn ghost icon-round | +",
+          2
+        ],
+        [
+          "button | btn ghost small | Open Research",
+          2
+        ],
+        [
+          "textarea",
+          2
+        ]
+      ]
+    },
+    "2026-04-07": {
+      "total": 8,
+      "types": [
+        [
+          "click",
+          8
+        ]
+      ],
+      "paths": [
+        [
+          "/",
+          8
+        ]
+      ],
+      "targets": [
+        [
+          "section | panel | Сценарий▾",
+          2
+        ],
+        [
+          "button | btn ghost small segment-group-expand-icon scenario-panel-toggle | ▾",
+          2
+        ],
+        [
+          "button | btn ghost icon-btn notion-refresh-btn",
+          2
+        ],
+        [
+          "button | btn ghost | СегментироватьNEW",
+          1
+        ],
+        [
+          "div | Темная📰Поиск контентаUSACHEVTODAYДокументdoc_2026-04-06T12-28-20-937Z_458283СтатусСегменты готовы: 188. NEW +170, ~1, =",
+          1
+        ]
+      ]
+    },
+    "2026-04-08": {
+      "total": 37,
+      "types": [
+        [
+          "click",
+          31
+        ],
+        [
+          "input",
+          6
+        ]
+      ],
+      "paths": [
+        [
+          "/",
+          37
+        ]
+      ],
+      "targets": [
+        [
+          "button | btn ghost small segment-group-expand segment-group-expand-icon | ▾",
+          8
+        ],
+        [
+          "input | segment-media-filter-input",
+          7
+        ],
+        [
+          "button | btn ghost icon-btn notion-refresh-btn",
+          5
+        ],
+        [
+          "button | btn ghost small segment-group-expand segment-group-expand-icon | ▴",
+          5
+        ],
+        [
+          "button | btn ghost | СегментироватьNEW",
+          3
+        ],
+        [
+          "input",
+          2
+        ],
+        [
+          "div | segment-tail-actions | +-",
+          1
+        ],
+        [
+          "button | btn ghost small segment-group-expand-icon scenario-panel-toggle | ▾",
+          1
+        ],
+        [
+          "button | btn ghost | Все ссылки (12)",
+          1
+        ],
+        [
+          "button | btn ghost | Скрыть ссылки (12)",
+          1
+        ],
+        [
+          "div | app | Темная📰Поиск контентаUSACHEVTODAYДокументdoc_2026-04-06T12-28-20-937Z_458283СтатусNotion обновлен. Проверьте сегменты.Н",
+          1
+        ],
+        [
+          "header | hero | Темная📰Поиск контентаUSACHEVTODAYДокументdoc_2026-04-06T12-28-20-937Z_458283СтатусNotion обновлен. Проверьте сегменты.Н",
+          1
+        ],
+        [
+          "header | hero | Темная📰Поиск контентаUSACHEVTODAYДокументdoc_2026-04-06T12-28-20-937Z_458283Статус🔄 6/28...Недавние документыНедавние",
+          1
+        ]
+      ]
+    },
+    "2026-04-09": {
+      "total": 5,
+      "types": [
+        [
+          "click",
+          5
+        ]
+      ],
+      "paths": [
+        [
+          "/",
+          5
+        ]
+      ],
+      "targets": [
+        [
+          "button | btn ghost | Экспорт XML",
+          2
+        ],
+        [
+          "a",
+          2
+        ],
+        [
+          "button | btn ghost small segment-group-expand segment-group-expand-icon | ▾",
+          1
+        ]
+      ]
+    }
+  },
+  "events": {
+    "2026-04-06": {
+      "total": 92,
+      "types": [
+        [
+          "telegram_sdvg_segment_sent",
+          22
+        ],
+        [
+          "media_download_status",
+          14
+        ],
+        [
+          "telegram_sdvg_segment_done",
+          10
+        ],
+        [
+          "session_saved",
+          7
+        ],
+        [
+          "segment_research_run",
+          7
+        ],
+        [
+          "telegram_sdvg_description_updated",
+          6
+        ],
+        [
+          "telegram_sdvg_topic_link_added",
+          6
+        ],
+        [
+          "telegram_sdvg_media_attached",
+          6
+        ],
+        [
+          "document_upserted",
+          5
+        ],
+        [
+          "segments_generated",
+          3
+        ],
+        [
+          "media_download_queued",
+          2
+        ],
+        [
+          "media_download_recorded",
+          2
+        ],
+        [
+          "document_created",
+          1
+        ],
+        [
+          "segment_research_applied",
+          1
+        ]
+      ],
+      "statuses": [
+        [
+          "running",
+          12
+        ],
+        [
+          "completed",
+          2
+        ]
+      ],
+      "suspect_events": [],
+      "progress_event_count": 14
+    },
+    "2026-04-07": {
+      "total": 306,
+      "types": [
+        [
+          "media_download_status",
+          69
+        ],
+        [
+          "telegram_sdvg_media_attached",
+          65
+        ],
+        [
+          "telegram_sdvg_segment_sent",
+          63
+        ],
+        [
+          "telegram_sdvg_segment_done",
+          54
+        ],
+        [
+          "telegram_sdvg_media_download_queued",
+          10
+        ],
+        [
+          "media_download_recorded",
+          10
+        ],
+        [
+          "telegram_sdvg_description_updated",
+          8
+        ],
+        [
+          "document_updated",
+          8
+        ],
+        [
+          "segment_research_url_dismissed",
+          8
+        ],
+        [
+          "telegram_sdvg_topic_link_added",
+          7
+        ],
+        [
+          "document_upserted",
+          3
+        ],
+        [
+          "segments_generated",
+          1
+        ]
+      ],
+      "statuses": [
+        [
+          "running",
+          58
+        ],
+        [
+          "completed",
+          10
+        ],
+        [
+          "failed",
+          1
+        ]
+      ],
+      "suspect_events": [
+        {
+          "timestamp": "2026-04-07T01:38:59.118Z",
+          "event": "media_download_status",
+          "status": "failed",
+          "error": "ERROR: Unsupported URL: https://m.ok.ru/group/63153922244792/topic/158766394663864",
+          "payload_keys": [
+            "error",
+            "job_id",
+            "output_files",
+            "progress",
+            "status",
+            "url"
+          ]
+        }
+      ],
+      "progress_event_count": 69
+    },
+    "2026-04-08": {
+      "total": 407,
+      "types": [
+        [
+          "telegram_sdvg_segment_sent",
+          155
+        ],
+        [
+          "telegram_sdvg_segment_done",
+          118
+        ],
+        [
+          "telegram_sdvg_media_attached",
+          64
+        ],
+        [
+          "media_download_status",
+          15
+        ],
+        [
+          "telegram_sdvg_topic_link_added",
+          13
+        ],
+        [
+          "segment_research_url_dismissed",
+          11
+        ],
+        [
+          "document_upserted",
+          8
+        ],
+        [
+          "document_updated",
+          5
+        ],
+        [
+          "session_saved",
+          4
+        ],
+        [
+          "telegram_sdvg_description_updated",
+          3
+        ],
+        [
+          "segments_generate_auto_recovered",
+          3
+        ],
+        [
+          "segments_generated",
+          3
+        ],
+        [
+          "telegram_sdvg_media_download_queued",
+          2
+        ],
+        [
+          "media_download_recorded",
+          2
+        ],
+        [
+          "telegram_project_archived",
+          1
+        ]
+      ],
+      "statuses": [
+        [
+          "running",
+          12
+        ],
+        [
+          "completed",
+          2
+        ],
+        [
+          "failed",
+          1
+        ]
+      ],
+      "suspect_events": [
+        {
+          "timestamp": "2026-04-08T00:01:31.131Z",
+          "event": "media_download_status",
+          "status": "failed",
+          "error": "No output files found after download",
+          "payload_keys": [
+            "error",
+            "job_id",
+            "output_files",
+            "progress",
+            "status",
+            "url"
+          ]
+        }
+      ],
+      "progress_event_count": 15
+    },
+    "2026-04-09": {
+      "total": 839,
+      "types": [
+        [
+          "telegram_sdvg_segment_sent",
+          406
+        ],
+        [
+          "telegram_sdvg_segment_done",
+          182
+        ],
+        [
+          "telegram_sdvg_media_attached",
+          105
+        ],
+        [
+          "media_download_status",
+          105
+        ],
+        [
+          "telegram_sdvg_media_download_queued",
+          17
+        ],
+        [
+          "media_download_recorded",
+          16
+        ],
+        [
+          "telegram_sdvg_topic_link_added",
+          8
+        ]
+      ],
+      "statuses": [
+        [
+          "running",
+          87
+        ],
+        [
+          "completed",
+          16
+        ],
+        [
+          "failed",
+          2
+        ]
+      ],
+      "suspect_events": [
+        {
+          "timestamp": "2026-04-09T09:34:34.732Z",
+          "event": "media_download_status",
+          "status": "failed",
+          "error": "ERROR: [youtube] R2pTEaT6baE: Sign in to confirm you�re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies",
+          "payload_keys": [
+            "error",
+            "job_id",
+            "output_files",
+            "progress",
+            "status",
+            "url"
+          ]
+        },
+        {
+          "timestamp": "2026-04-09T09:36:12.449Z",
+          "event": "media_download_status",
+          "status": "failed",
+          "error": "ERROR: [youtube] GitCpe8SN9M: Sign in to confirm you�re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies",
+          "payload_keys": [
+            "error",
+            "job_id",
+            "output_files",
+            "progress",
+            "status",
+            "url"
+          ]
+        }
+      ],
+      "progress_event_count": 105
+    }
+  }
+}

@@ -1,0 +1,400 @@
+{
+  "package_name": "syntxai-vbaut-research-agent",
+  "package_version": "1.0.0",
+  "created_at": "2026-04-07",
+  "source_project": "VBAUT inside c:\\tgbotapi",
+  "purpose": "Transferable knowledge base for an external GPT-5 research agent used to find editorial sources and visuals for VBAUT and SDVG workflows.",
+  "assistant_identity": {
+    "role": "editorial research and visual sourcing assistant",
+    "default_response_language": "ru",
+    "primary_goal": "Find materials that are actually usable in editorial workflow, not generic web summaries.",
+    "must_distinguish_roles": [
+      "source",
+      "visual",
+      "source+visual",
+      "context"
+    ]
+  },
+  "project_context": {
+    "product_name": "VBAUT",
+    "summary": "Local editorial assistant for scripts, segment-based research, visual sourcing, manual media downloading, release prep, and Telegram SDVG handling.",
+    "current_ui_state": {
+      "newsroom_route": "http://localhost:5173/newsroom",
+      "research_route": "http://localhost:5173/research",
+      "main_research_workflow": "single ranked-list search with multi-select and rerun",
+      "old_workflow_status": "main/backup pair is no longer the main UX, but pair terminology still matters in briefs and release handoff"
+    }
+  },
+  "core_entities": {
+    "document": "A script-level working unit.",
+    "topic": "A section/group inside the script; may provide parent topic title and theme context.",
+    "segment": "The smallest working editorial unit for search, visuals, and decisions.",
+    "visual_decision": "Manual or AI-assisted visual description and linked media choices for a segment.",
+    "search_decision": "Saved keywords and explicit search queries for a segment.",
+    "research_run": "A saved search session containing queries, results, ranked_results, summary, and apply state.",
+    "research_brief": "Server-side distilled output with best source, best visual, backups, pair hints, and memory hints.",
+    "source_registry": "The source policy registry stored in source-profiles.json.",
+    "source_memory": "Reuse memory of domains and URLs that worked before, including Helpful signals.",
+    "sdvg": "Telegram mode for quickly processing unfinished segments with links, media, and screenshot previews."
+  },
+  "input_priority_rules": [
+    "Saved search queries have highest priority.",
+    "If saved search queries are absent, use visual description as the main signal.",
+    "If both are absent, use the segment text and its English semantic equivalent.",
+    "Parent topic title is optional and should only be used when explicitly enabled.",
+    "Theme tags are optional and should only be used when explicitly enabled."
+  ],
+  "query_generation_policy": {
+    "language_policy": {
+      "default_mode": "Russian-first when the segment is Russian.",
+      "switch_to_english_when": [
+        "the user provided English queries",
+        "the story is clearly English-first",
+        "the strongest likely sources are English-language primaries"
+      ]
+    },
+    "search_biases": [
+      "Prefer video-first search when the story benefits from downloadable footage.",
+      "Place a YouTube-focused or other downloadable video query near the top when relevant.",
+      "Do not let broad topic hints override explicit user queries."
+    ],
+    "modes": {
+      "fast": {
+        "intent": "Compact, pragmatic search for immediately usable links.",
+        "query_count_guidance": "Usually 5-8 queries."
+      },
+      "deep": {
+        "intent": "Wider search covering source-seeking, visual-seeking, official statements, galleries, footage angles, and context.",
+        "query_count_guidance": "Usually 8-14 queries.",
+        "phase_model": [
+          "context",
+          "source",
+          "visual"
+        ]
+      }
+    }
+  },
+  "ranking_policy": {
+    "top_level_goal": "Rank candidates by editorial usability, not by generic search popularity.",
+    "important_scores": [
+      "relevance",
+      "visual",
+      "source",
+      "freshness",
+      "downloadability",
+      "montage suitability"
+    ],
+    "positive_signals": [
+      "direct relevance to the exact segment",
+      "usable for editing, screenshots, or downloadable media",
+      "trusted domain",
+      "preferred article domain for factual sourcing",
+      "downloadable domain for visuals",
+      "helpful before",
+      "used before",
+      "strong montage fit"
+    ],
+    "negative_signals": [
+      "blocked domain",
+      "weak repost or SEO page",
+      "duplicate of an existing or previously seen URL",
+      "generic explainer with no segment-specific value",
+      "visual looks unusable or heavily watermarked",
+      "social post treated as factual source without support"
+    ],
+    "selection_heuristics": {
+      "source_candidate": "Prefer reliable reporting, official statements, direct evidence, and segment-specific context.",
+      "visual_candidate": "Prefer downloadable video, clean visuals, screenshot-friendly pages, footage, galleries, and embeds that can actually be used.",
+      "source_plus_visual": "Mark as both only if the same candidate genuinely works in both roles.",
+      "backup_candidate": "Should be meaningfully different from the main pick, not just a near-duplicate."
+    }
+  },
+  "dedupe_policy": {
+    "must_exclude_when_provided": [
+      "existing links already stored in the document",
+      "previously seen URLs",
+      "dismissed URLs",
+      "duplicates from previous research runs"
+    ],
+    "dedupe_rule": "Do not repeat a candidate unless it is clearly a better original, a more downloadable version, or adds a materially better visual/editorial angle."
+  },
+  "workflow_rules": {
+    "vbaut_standard_research": [
+      "Main UX is a single ranked list of candidates.",
+      "The assistant should still think in source vs visual roles even when the UI shows one list.",
+      "The result should be compatible with Add Selected Links and quick promote actions."
+    ],
+    "vbaut_deep_research": [
+      "Deep mode can surface context pass, source pass, and visual pass separately.",
+      "The assistant should help identify best source, best visual, and backup options.",
+      "Results should be usable for Promote Main Pair, Promote Backup Pair, Use Main Source, and Use Main Visual."
+    ],
+    "research_brief_language": {
+      "main_labels": [
+        "Main Source",
+        "Main Visual",
+        "Backup Source",
+        "Backup Visual",
+        "Current Pair"
+      ],
+      "pair_drift_meaning": "Current pair may differ from the nominal main pair because of manual override, mixed selection, or backup promotion."
+    },
+    "sdvg": [
+      "SDVG suggestions are usually processed one link at a time.",
+      "If the link is downloadable, it should go through normal yt-dlp or gallery-dl flow.",
+      "If the link is not downloadable but is still useful, it should first be added to topic links and then treated as a screenshot-preview candidate.",
+      "Screenshot preview actions conceptually map to: + attach screenshot, - dismiss preview, x retry with other browser parameters."
+    ]
+  },
+  "recommended_actions": {
+    "use_as_source": "Strong factual or contextual source for the segment.",
+    "use_as_visual": "Strong visual asset or visual page for the segment.",
+    "download": "Best action when the domain is realistically downloadable.",
+    "add_link": "Best action when the link is useful but not directly downloadable.",
+    "screenshot": "Best action when the page is visually useful and screenshot-friendly.",
+    "skip": "Reject weak, blocked, duplicate, or off-angle materials."
+  },
+  "source_registry_snapshot": {
+    "source_file": "VBAUT/data/source-profiles.json",
+    "version": 1,
+    "trusted_domains": [
+      "apnews.com",
+      "cnn.com",
+      "dw.com",
+      "ft.com",
+      "nytimes.com",
+      "reuters.com",
+      "theguardian.com"
+    ],
+    "blocked_domains": [
+      "bbc.co.uk",
+      "bbc.com",
+      "currenttime.tv",
+      "istories.media",
+      "meduza.io",
+      "novayagazeta.eu",
+      "pinterest.com",
+      "quora.com",
+      "svoboda.org",
+      "theins.ru",
+      "themoscowtimes.com",
+      "tvrain.tv",
+      "wikipedia.org",
+      "zona.media"
+    ],
+    "preferred_article_domains": [
+      "apnews.com",
+      "bloomberg.com",
+      "cnews.ru",
+      "ctv.by",
+      "daily.afisha.ru",
+      "devby.io",
+      "evening-kazan.ru",
+      "finance.yahoo.com",
+      "forbes.com",
+      "forbes.ru",
+      "interfax.ru",
+      "iphones.ru",
+      "ixbt.games",
+      "iz.ru",
+      "kommersant.ru",
+      "mentoday.ru",
+      "moskvichmag.ru",
+      "news.ru",
+      "nypost.com",
+      "rb.ru",
+      "rbc.ru",
+      "reuters.com",
+      "ruposters.ru",
+      "shazoo.ru",
+      "variety.com",
+      "vc.ru",
+      "vedomosti.ru",
+      "wsj.com"
+    ],
+    "preview_image_domains": [
+      "api.nsn.fm",
+      "cdn-kz.kursiv.media",
+      "cdn.forbes.ru",
+      "cdn.shazoo.ru",
+      "icdn.lenta.ru",
+      "rtvi.com",
+      "s.ura.news",
+      "s0.rbk.ru",
+      "vk.com"
+    ],
+    "video_platform_domains": [
+      "dailymotion.com",
+      "ok.ru",
+      "rutube.ru",
+      "vimeo.com",
+      "vk.ru",
+      "vkvideo.ru",
+      "youtu.be",
+      "youtube.com"
+    ],
+    "social_domains": [
+      "facebook.com",
+      "instagram.com",
+      "reddit.com",
+      "t.me",
+      "tiktok.com",
+      "twitter.com",
+      "vk.com",
+      "x.com"
+    ],
+    "downloadable_domains": [
+      "reddit.com",
+      "rutube.ru",
+      "tiktok.com",
+      "twitter.com",
+      "vimeo.com",
+      "vk.com",
+      "x.com",
+      "youtu.be",
+      "youtube.com"
+    ],
+    "screenshot_friendly_domains": [
+      "facebook.com",
+      "instagram.com",
+      "reddit.com",
+      "t.me",
+      "twitter.com",
+      "x.com"
+    ],
+    "notable_domain_profiles": {
+      "reuters.com": {
+        "trusted": true,
+        "blocked_in_rf": false,
+        "watermarks": false,
+        "source_bias": 0.42,
+        "visual_bias": 0.18,
+        "downloadability_bias": 0.0
+      },
+      "apnews.com": {
+        "trusted": true,
+        "blocked_in_rf": false,
+        "watermarks": false,
+        "source_bias": 0.38,
+        "visual_bias": 0.14,
+        "downloadability_bias": 0.0
+      },
+      "youtube.com": {
+        "trusted": false,
+        "blocked_in_rf": false,
+        "watermarks": false,
+        "source_bias": 0.2,
+        "visual_bias": 0.48,
+        "downloadability_bias": 0.52
+      },
+      "youtu.be": {
+        "trusted": false,
+        "blocked_in_rf": false,
+        "watermarks": false,
+        "source_bias": 0.2,
+        "visual_bias": 0.48,
+        "downloadability_bias": 0.52
+      },
+      "reddit.com": {
+        "trusted": false,
+        "blocked_in_rf": false,
+        "watermarks": false,
+        "source_bias": 0.0,
+        "visual_bias": 0.22,
+        "downloadability_bias": 0.18
+      },
+      "x.com": {
+        "trusted": false,
+        "blocked_in_rf": false,
+        "watermarks": false,
+        "source_bias": 0.0,
+        "visual_bias": 0.2,
+        "downloadability_bias": 0.16
+      },
+      "twitter.com": {
+        "trusted": false,
+        "blocked_in_rf": false,
+        "watermarks": false,
+        "source_bias": 0.0,
+        "visual_bias": 0.2,
+        "downloadability_bias": 0.16
+      },
+      "vk.com": {
+        "trusted": false,
+        "blocked_in_rf": false,
+        "watermarks": false,
+        "source_bias": 0.0,
+        "visual_bias": 0.22,
+        "downloadability_bias": 0.24
+      },
+      "bbc.com": {
+        "trusted": false,
+        "blocked_in_rf": true,
+        "watermarks": false,
+        "source_bias": -0.28,
+        "visual_bias": -0.12,
+        "downloadability_bias": -0.08
+      }
+    },
+    "channel_profiles": {}
+  },
+  "source_memory_policy": {
+    "meaning": "Source memory reflects what worked in prior editorial usage.",
+    "important_fields": [
+      "domains",
+      "urls",
+      "recent",
+      "patterns",
+      "helpful_count"
+    ],
+    "usage_rule": "Helpful Before and Used Before are positive reuse hints, but they do not override explicit relevance or blocklist rules."
+  },
+  "screenshot_policy": {
+    "when_to_suggest": [
+      "The link is not readily downloadable but is visually useful.",
+      "The domain is screenshot-friendly.",
+      "A clean page-level capture is more useful than a weak third-party repost."
+    ],
+    "current_project_note": "Screenshot profiles are stored per source and successful browser presets are saved back into Source Registry.",
+    "legacy_engine_defaults_note": "A deprecated config described default screenshot size and zoom with domain-based zoom overrides; this confirms screenshot behavior is source-aware rather than one-size-fits-all."
+  },
+  "output_contract": {
+    "default_sections": [
+      "Фокус поиска",
+      "Запросы",
+      "Лучшие source-кандидаты",
+      "Лучшие visual-кандидаты",
+      "Backup",
+      "Что отсек"
+    ],
+    "candidate_fields": [
+      "role",
+      "title",
+      "domain",
+      "url",
+      "why_it_matters",
+      "signals",
+      "recommended_action"
+    ],
+    "recommended_actions": [
+      "use as source",
+      "use as visual",
+      "download",
+      "add-link",
+      "screenshot",
+      "skip"
+    ]
+  },
+  "anti_patterns": [
+    "Do not return blocked domains unless the user explicitly overrides policy.",
+    "Do not treat Wikipedia, Pinterest, or Quora as preferred editorial candidates.",
+    "Do not let broad topic hints override explicit saved queries.",
+    "Do not present social reposts as strong factual sources without a caveat.",
+    "Do not ignore dedupe inputs like seen URLs or existing links.",
+    "Do not collapse all candidates into one undifferentiated list without clarifying source vs visual role."
+  ],
+  "handoff_note": {
+    "best_usage": "Use system-prompt.md as the agent system instruction and provide this JSON as the attached knowledge base.",
+    "operator_tip": "When asking the external agent to search, pass segment text, visual description, saved queries, theme tags, existing links, and seen URLs whenever possible."
+  }
+}

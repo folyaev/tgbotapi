@@ -1,0 +1,10 @@
+Backend listening on http://localhost:8787
+Media downloader: yt-dlp=C:\tgbotapi\VBAUT\MediaDownloaderQt6-5.4.2\local\bin\yt-dlp ffmpeg_location=C:\tgbotapi\VBAUT\MediaDownloaderQt6-5.4.2\3rdParty\ffmpeg\bin
+Media root: C:\Users\Nemifist\YandexDisk\PAMPAM
+Telegram SDVG: enabled=1 running=1 bot=N/A
+Telegram SDVG API: mode=cloud api_base=https://api.telegram.org/bot file_base=https://api.telegram.org/file
+Screenshot Browser: enabled=1 running=0 profile=C:\tgbotapi\VBAUT\data\screenshot-browser-profile port=9223
+[screenshot-browser] started: profile=C:\tgbotapi\VBAUT\data\screenshot-browser-profile port=9223 extensions=0
+[cookies] screenshot snapshot refreshed (startup): 54 cookies -> C:\tgbotapi\VBAUT\data\cookies\global-cookies.json
+[link-audit] completed (startup): scanned=9 suspicious=0
+[telegram-sdvg] Bot connected as @utsearchbot

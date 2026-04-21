@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, cast
@@ -31,6 +32,8 @@ from utmanager.db import (
     item_update_author,
     item_update_bucket,
     item_upsert,
+    seen_file_get,
+    seen_file_upsert,
     selection_get,
     topic_get,
     thread_topic_get,
@@ -45,6 +48,7 @@ from utmanager.ui import (
     format_download_progress_text,
     format_progress_text,
     kb_for_progress,
+    schedule_autodelete,
 )
 from utmanager.handlers.utils import record_thread_topic_from_message, render_item_card, render_item_summary
 from utmanager.telegram_utils import reply_silent, send_silent_message
@@ -210,6 +214,46 @@ def _move_to_topic(abs_path: Path, bucket: str, topic_name: str, category: str) 
         return abs_path
 
 
+def _find_seen_file_path(
+    chat_id: int,
+    file_unique_id: str,
+    *,
+    expected_size: Optional[int] = None,
+) -> Optional[Path]:
+    saved_path = seen_file_get(chat_id, file_unique_id)
+    if not saved_path:
+        return None
+    candidate = Path(saved_path)
+    if not candidate.exists():
+        return None
+    if expected_size is not None:
+        try:
+            if candidate.stat().st_size != expected_size:
+                return None
+        except Exception:
+            return None
+    return candidate
+
+
+def _materialize_seen_file(existing_path: Path, dest: Path) -> Path:
+    try:
+        if existing_path.resolve() == dest.resolve():
+            return existing_path
+    except Exception:
+        pass
+
+    if dest.exists():
+        try:
+            if dest.stat().st_size == existing_path.stat().st_size:
+                return dest
+        except Exception:
+            pass
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(existing_path, dest)
+    return dest
+
+
 def _topic_name_by_id(topic_id: int) -> Optional[str]:
     row = db("SELECT name FROM topics WHERE id=?", topic_id).fetchone()
     return row[0] if row else None
@@ -320,7 +364,11 @@ async def _save_photo(
         ".jpg",
         expected_size=photo.file_size,
     )
-    if photo.file_size and dest.exists() and dest.stat().st_size == photo.file_size:
+    existing_seen = _find_seen_file_path(msg.chat_id, photo.file_unique_id or "", expected_size=photo.file_size)
+    if existing_seen is not None:
+        dest = _materialize_seen_file(existing_seen, dest)
+        log.debug("Reuse existing photo %s from %s", photo.file_unique_id, existing_seen)
+    elif photo.file_size and dest.exists() and dest.stat().st_size == photo.file_size:
         log.debug("Skip download photo %s: already exists at %s", photo.file_unique_id, dest)
     else:
         await _download_to_dest(ctx, msg, header, pid, bucket, tg_file, dest)
@@ -349,7 +397,11 @@ async def _save_video(
         ".mp4",
         expected_size=video.file_size,
     )
-    if video.file_size and dest.exists() and dest.stat().st_size == video.file_size:
+    existing_seen = _find_seen_file_path(msg.chat_id, video.file_unique_id or "", expected_size=video.file_size)
+    if existing_seen is not None:
+        dest = _materialize_seen_file(existing_seen, dest)
+        log.debug("Reuse existing video %s from %s", video.file_unique_id, existing_seen)
+    elif video.file_size and dest.exists() and dest.stat().st_size == video.file_size:
         log.debug("Skip download video %s: already exists at %s", video.file_unique_id, dest)
     else:
         await _download_to_dest(ctx, msg, header, pid, bucket, tg_file, dest)
@@ -378,7 +430,11 @@ async def _save_animation(
         ".mp4",
         expected_size=animation.file_size,
     )
-    if animation.file_size and dest.exists() and dest.stat().st_size == animation.file_size:
+    existing_seen = _find_seen_file_path(msg.chat_id, animation.file_unique_id or "", expected_size=animation.file_size)
+    if existing_seen is not None:
+        dest = _materialize_seen_file(existing_seen, dest)
+        log.debug("Reuse existing animation %s from %s", animation.file_unique_id, existing_seen)
+    elif animation.file_size and dest.exists() and dest.stat().st_size == animation.file_size:
         log.debug("Skip download animation %s: already exists at %s", animation.file_unique_id, dest)
     else:
         await _download_to_dest(ctx, msg, header, pid, bucket, tg_file, dest)
@@ -409,7 +465,11 @@ async def _save_document(
         ext or ".bin",
         expected_size=document.file_size,
     )
-    if document.file_size and dest.exists() and dest.stat().st_size == document.file_size:
+    existing_seen = _find_seen_file_path(msg.chat_id, document.file_unique_id or "", expected_size=document.file_size)
+    if existing_seen is not None:
+        dest = _materialize_seen_file(existing_seen, dest)
+        log.debug("Reuse existing document %s from %s", document.file_unique_id, existing_seen)
+    elif document.file_size and dest.exists() and dest.stat().st_size == document.file_size:
         log.debug("Skip download document %s: already exists at %s", document.file_unique_id, dest)
     else:
         await _download_to_dest(ctx, msg, header, pid, bucket, tg_file, dest)
@@ -447,15 +507,6 @@ async def _finalize_saved_content(
     bucket: str,
     progress_msg_id: int,
 ) -> None:
-    if unique_id:
-        db(
-            "INSERT OR IGNORE INTO seen_files(file_unique_id,chat_id,saved_path,created_at) "
-            "VALUES(?,?,?,datetime('now'))",
-            unique_id,
-            chat_id,
-            str(dest),
-        )
-
     filemap_set(
         chat_id,
         progress_msg_id,
@@ -497,6 +548,9 @@ async def _finalize_saved_content(
     else:
         await _persist_item(msg, chat_id, 0, category, bucket)
         _schedule_followup_jobs(ctx, chat_id, progress_msg_id, bucket)
+
+    if unique_id:
+        seen_file_upsert(chat_id, unique_id, str(dest))
 
 
 async def _persist_item(
@@ -1206,7 +1260,6 @@ async def download_item_content(
             file_id = entry.get("file_id")
             if not file_id:
                 continue
-            tg_file = await get_file_by_id_with_retry(ctx.bot, file_id)
             created_at = entry.get("created_at") or ""
             fallback_dt = None
             try:
@@ -1226,26 +1279,30 @@ async def download_item_content(
                 fallback_base,
                 default_suffix,
             )
-            await _download_to_dest_simple(
-                ctx,
-                item_chat_id,
-                progress_msg_id,
-                folder_label,
-                tg_file,
-                dest,
-                index=idx,
-                total=total,
-            )
-
             unique_id = entry.get("file_unique_id")
-            if unique_id:
-                db(
-                    "INSERT OR IGNORE INTO seen_files(file_unique_id,chat_id,saved_path,created_at) "
-                    "VALUES(?,?,?,datetime('now'))",
-                    unique_id,
+            existing_seen = _find_seen_file_path(
+                item_chat_id,
+                unique_id or "",
+            )
+            if existing_seen is not None:
+                dest = _materialize_seen_file(existing_seen, dest)
+            elif dest.exists():
+                log.debug("Skip download existing file for item %s: %s", entry_message_id, dest)
+            else:
+                tg_file = await get_file_by_id_with_retry(ctx.bot, file_id)
+                await _download_to_dest_simple(
+                    ctx,
                     item_chat_id,
-                    str(dest),
+                    progress_msg_id,
+                    folder_label,
+                    tg_file,
+                    dest,
+                    index=idx,
+                    total=total,
                 )
+
+            if unique_id:
+                seen_file_upsert(item_chat_id, unique_id, str(dest))
 
             filemap_set(
                 item_chat_id,
@@ -1269,6 +1326,7 @@ async def download_item_content(
                 primary_kind,
                 origin_message_id=primary_message_id,
             )
+        await schedule_autodelete(ctx, item_chat_id, progress_msg_id, delay_s=300)
     except Exception as exc:
         log.exception("Download failed: %s", exc)
         try:

@@ -1233,6 +1233,58 @@ def item_update_topic_id(chat_id: int, message_id: int, topic_id: int) -> None:
         db("UPDATE items SET topic_id=? WHERE chat_id=? AND message_id=?", topic_id, chat_id, message_id)
 
 
+def seen_file_get(chat_id: int, file_unique_id: str) -> Optional[str]:
+
+    if not file_unique_id:
+
+        return None
+
+    row = db(
+
+        "SELECT saved_path FROM seen_files WHERE file_unique_id=? AND chat_id=?",
+
+        file_unique_id,
+
+        chat_id,
+
+    ).fetchone()
+
+    if not row:
+
+        return None
+
+    saved_path = row[0]
+
+    return str(saved_path) if saved_path else None
+
+
+def seen_file_upsert(chat_id: int, file_unique_id: str, saved_path: str) -> None:
+
+    if not file_unique_id:
+
+        return
+
+    with conn:
+
+        db(
+
+            "INSERT INTO seen_files(file_unique_id,chat_id,saved_path,created_at) "
+
+            "VALUES(?,?,?,datetime('now')) "
+
+            "ON CONFLICT(file_unique_id, chat_id) DO UPDATE SET "
+
+            "saved_path=excluded.saved_path, created_at=excluded.created_at",
+
+            file_unique_id,
+
+            chat_id,
+
+            saved_path,
+
+        )
+
+
 
 def tag_get_or_create(name: str) -> int:
 
