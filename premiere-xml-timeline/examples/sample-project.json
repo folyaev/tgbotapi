@@ -1,0 +1,30 @@
+{
+  "document": {
+    "id": "demo-doc"
+  },
+  "media_dir": "./examples/media",
+  "xml_media_root": null,
+  "fps": 50,
+  "default_duration_sec": 5,
+  "section_id": "",
+  "section_title": "",
+  "segments": [
+    {
+      "segment_id": "seg_1",
+      "section_id": "intro",
+      "section_title": "Intro",
+      "text_quote": "First timeline clip",
+      "block_type": "news"
+    }
+  ],
+  "decisions": [
+    {
+      "segment_id": "seg_1",
+      "visual_decision": {
+        "media_file_path": "clip-a.mp4",
+        "duration_hint_sec": 3,
+        "media_start_timecode": "00:00:00:00"
+      }
+    }
+  ]
+}

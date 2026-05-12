@@ -1,0 +1,10 @@
+{
+  "name": "premiere-xml-timeline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sample": "node examples/generate-xml.mjs examples/sample-project.json examples/sample-output.xml",
+    "test": "node --test"
+  }
+}
