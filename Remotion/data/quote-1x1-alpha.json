@@ -1,0 +1,10 @@
+{
+  "variant": "source-led",
+  "source": "UT Express",
+  "quote": "Пока москвичи трудятся с утра до вечера, у итальянцев «обед, сиеста и пивко»",
+  "author": "Сергей Собянин",
+  "role": "Мэр Москвы",
+  "label": "Quote / 1:1 alpha",
+  "accent": "#8f7cff",
+  "transparent": true
+}

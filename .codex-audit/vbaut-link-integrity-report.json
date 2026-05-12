@@ -1,11 +1,11 @@
 {
   "summary": {
     "data_dir": "C:\\tgbotapi\\VBAUT\\data",
-    "scanned_documents": 2,
+    "scanned_documents": 4,
     "suspicious_documents": 0,
     "suspicious_doc_ids": [],
-    "max_historical_links": 22,
-    "generated_at": "2026-04-21T18:26:02.166Z"
+    "max_historical_links": 25,
+    "generated_at": "2026-05-12T08:25:37.558Z"
   },
   "results": []
 }

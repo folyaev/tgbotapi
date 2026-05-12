@@ -1,0 +1,12 @@
+{
+  "variant": "source-led",
+  "source": "iPhones.ru",
+  "quote": "Apple может снять с производства Vision Pro до конца 2024 года",
+  "date": "23 октября 2024",
+  "label": "News Card / 1:1",
+  "accent": "#8f7cff",
+  "transparent": false,
+  "background": {
+    "dim": 0.62
+  }
+}

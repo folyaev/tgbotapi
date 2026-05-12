@@ -1,1 +1,8 @@
 ﻿VBAUT/
+
+# Node/Remotion generated dependencies and build artifacts
+node_modules/
+**/node_modules/
+Remotion/out/
+Remotion/.cache/
+Remotion/.remotion/
