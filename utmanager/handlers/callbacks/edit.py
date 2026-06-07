@@ -23,6 +23,7 @@ from utmanager.db import (
     item_update_topic_id,
     item_update_title,
     item_apply_topic_tags,
+    last_topic_set,
     pending_newtopic_clear,
     pending_newtopic_get,
     pending_newtopic_set,
@@ -32,10 +33,11 @@ from utmanager.db import (
     pending_tags_clear,
     pending_tags_get,
     tags_for_item,
+    topic_create,
     topic_get,
     topic_set_tags,
 )
-from utmanager.topics import sync_topics_from_fs, topic_upsert
+from utmanager.topics import sync_topics_from_fs
 from utmanager.handlers.utils import (
     record_thread_topic_from_message,
     render_item_card,
@@ -67,6 +69,7 @@ __all__ = [
 ]
 
 EDITCARD_STATE_KEY = "editcard_wait_link"
+EDITCARD_INPUT_AUTODELETE_S = 30
 
 
 def _parse_message_link(text: str) -> Optional[Tuple[int, int]]:
@@ -499,6 +502,7 @@ async def cb_item_pick(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     item_update_bucket(item_chat_id, item_message_id, bucket)
     if topic_id:
         item_apply_topic_tags(item_chat_id, item_message_id, topic_id)
+        last_topic_set(item_chat_id, bucket, topic_id)
 
     await render_item_card(
         ctx,
@@ -615,7 +619,8 @@ async def text_catcher(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         if not name:
             await reply_silent(msg, "Имя темы пустое, попробуйте снова.")
             return
-        topic_upsert(chat_id, bucket, name)
+        topic_id = topic_create(chat_id, bucket, name)
+        last_topic_set(chat_id, bucket, topic_id)
         # Ensure folder exists so sync doesn't drop the new topic.
         try:
             (bucket_root(bucket) / name).mkdir(parents=True, exist_ok=True)
@@ -701,6 +706,7 @@ async def editcard_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     msg = update.message
     if not msg:
         return
+    await schedule_autodelete(ctx, msg.chat.id, msg.message_id, delay_s=EDITCARD_INPUT_AUTODELETE_S)
 
     link = None
     if ctx.args:

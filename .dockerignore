@@ -1,0 +1,9 @@
+*
+
+!Dockerfile
+!requirements.txt
+!utmanager/
+!utmanager/**
+
+utmanager/**/__pycache__/
+utmanager/**/*.pyc

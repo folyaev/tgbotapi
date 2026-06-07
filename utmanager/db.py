@@ -125,6 +125,22 @@ CREATE TABLE IF NOT EXISTS msg_selection(
 
 )""")
 
+conn.execute("""
+
+CREATE TABLE IF NOT EXISTS last_topic_selection(
+
+  chat_id INTEGER NOT NULL,
+
+  bucket TEXT NOT NULL,
+
+  topic_id INTEGER NOT NULL,
+
+  updated_at TEXT NOT NULL,
+
+  PRIMARY KEY(chat_id, bucket)
+
+)""")
+
 
 
 conn.execute("""
@@ -731,6 +747,40 @@ def selection_set(chat_id: int, progress_msg_id: int, topic_id: int) -> None:
 
             chat_id, progress_msg_id, topic_id
 
+        )
+
+
+def last_topic_get(chat_id: int, bucket: str) -> Optional[int]:
+    row = db(
+        "SELECT l.topic_id FROM last_topic_selection l "
+        "JOIN topics t ON t.id=l.topic_id "
+        "WHERE l.chat_id=? AND l.bucket=? AND t.chat_id=? AND t.bucket=? AND t.archived=0",
+        chat_id,
+        bucket,
+        chat_id,
+        bucket,
+    ).fetchone()
+    return int(row[0]) if row else None
+
+
+def last_topic_set(chat_id: int, bucket: str, topic_id: int) -> None:
+    if not topic_id:
+        return
+    topic = topic_get(topic_id)
+    if not topic:
+        return
+    topic_chat_id, topic_bucket, _ = topic
+    bucket_to_store = topic_bucket or bucket
+    if topic_chat_id != chat_id:
+        return
+    with conn:
+        db(
+            "INSERT INTO last_topic_selection(chat_id,bucket,topic_id,updated_at) VALUES(?,?,?,?) "
+            "ON CONFLICT(chat_id,bucket) DO UPDATE SET topic_id=excluded.topic_id, updated_at=excluded.updated_at",
+            chat_id,
+            bucket_to_store,
+            topic_id,
+            datetime.now(UTC).isoformat(timespec="seconds"),
         )
 
 

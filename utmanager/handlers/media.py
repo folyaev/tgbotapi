@@ -32,9 +32,11 @@ from utmanager.db import (
     item_update_author,
     item_update_bucket,
     item_upsert,
+    last_topic_get,
     seen_file_get,
     seen_file_upsert,
     selection_get,
+    selection_set,
     topic_get,
     thread_topic_get,
 )
@@ -761,6 +763,9 @@ async def _process_link_save(
 
     progress = await reply_silent(msg, format_progress_text(header, 0))
     progress_msg_id = progress.message_id
+    last_topic_id = last_topic_get(chat_id, bucket) or 0
+    if last_topic_id:
+        selection_set(chat_id, progress_msg_id, last_topic_id)
     try:
         await ctx.bot.edit_message_reply_markup(
             chat_id=chat_id,
@@ -817,12 +822,19 @@ async def _create_item_card(
     chat_id = chat.id
     bucket = current_bucket(msg.date)
 
-    await _persist_item(msg, chat_id, 0, kind, bucket)
+    topic_id = last_topic_get(chat_id, bucket) or 0
+
+    await _persist_item(msg, chat_id, topic_id, kind, bucket)
+    if topic_id:
+        item_apply_topic_tags(chat_id, msg.message_id, topic_id)
 
     progress_msg_id = prompt_message_id
     if progress_msg_id is None:
         progress = await reply_silent(msg, "Создаю карточку...")
         progress_msg_id = progress.message_id
+
+    if topic_id:
+        selection_set(chat_id, progress_msg_id, topic_id)
 
     placeholder_path = _pending_media_path(bucket, msg.message_id)
     filemap_set(
@@ -834,11 +846,11 @@ async def _create_item_card(
         origin_message_id=msg.message_id,
     )
 
-    await render_item_card(
+    await render_item_summary(
         ctx,
         chat_id=chat_id,
         progress_msg_id=progress_msg_id,
-        topic_id=0,
+        topic_id=topic_id,
         bucket=bucket,
         origin_message_id=msg.message_id,
     )
@@ -1108,7 +1120,10 @@ async def handle_link_decision(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -
                 if not meta:
                     continue
                 kind = meta[0]
-                await _persist_item(original_msg, chat_id, 0, kind, bucket)
+                topic_id = last_topic_get(chat_id, bucket) or 0
+                await _persist_item(original_msg, chat_id, topic_id, kind, bucket)
+                if topic_id:
+                    item_apply_topic_tags(chat_id, original_msg.message_id, topic_id)
                 placeholder_path = _pending_media_path(bucket, original_msg.message_id)
                 filemap_set(
                     chat_id,

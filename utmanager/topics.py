@@ -7,7 +7,12 @@ from typing import List, Set, Tuple
 from .config import bucket_root
 from .db import topic_delete, topic_set_archived, topics_all, topic_upsert
 
-EXCLUDED_TOPIC_DIRS = {"UNSORTED", ".DS_Store", "__MACOSX"}
+EXCLUDED_TOPIC_DIRS = {"UNSORTED", ".DS_Store", "__MACOSX", "ARCHIVE_PROJECTS", "Graphics"}
+EXCLUDED_TOPIC_DIR_KEYS = {name.casefold() for name in EXCLUDED_TOPIC_DIRS}
+
+
+def is_excluded_topic_name(name: str) -> bool:
+    return str(name or "").strip().casefold() in EXCLUDED_TOPIC_DIR_KEYS
 
 def fs_topics_for(bucket: str) -> List[str]:
     root = bucket_root(bucket)
@@ -15,12 +20,12 @@ def fs_topics_for(bucket: str) -> List[str]:
         return []
     topics: List[str] = []
     for e in root.iterdir():
-        if e.is_dir() and e.name not in EXCLUDED_TOPIC_DIRS and not e.name.startswith("."):
+        if e.is_dir() and not is_excluded_topic_name(e.name) and not e.name.startswith("."):
             topics.append(e.name)
     return topics
 
 def topics_ordered(chat_id: int, bucket: str) -> List[Tuple[int, str]]:
-    rows = topics_all(chat_id, bucket)
+    rows = [(topic_id, name) for topic_id, name in topics_all(chat_id, bucket) if not is_excluded_topic_name(name)]
     def sort_key(row: Tuple[int, str]) -> Tuple[float, int]:
         topic_id, name = row
         path = bucket_root(bucket) / name

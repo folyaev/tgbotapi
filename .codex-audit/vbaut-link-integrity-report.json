@@ -1,11 +1,49 @@
 {
   "summary": {
     "data_dir": "C:\\tgbotapi\\VBAUT\\data",
-    "scanned_documents": 4,
-    "suspicious_documents": 0,
-    "suspicious_doc_ids": [],
-    "max_historical_links": 25,
-    "generated_at": "2026-05-12T11:25:37.604Z"
+    "scanned_documents": 5,
+    "suspicious_documents": 1,
+    "suspicious_doc_ids": [
+      "doc_2026-05-17T15-26-50-526Z_bqeJur"
+    ],
+    "max_historical_links": 34,
+    "generated_at": "2026-06-05T15:58:48.136Z"
   },
-  "results": []
+  "results": [
+    {
+      "doc_id": "doc_2026-05-17T15-26-50-526Z_bqeJur",
+      "versions_scanned": 126,
+      "current": {
+        "segment_count": 181,
+        "link_block_count": 10,
+        "total_links": 15
+      },
+      "historical": {
+        "section_count": 11,
+        "total_unique_links": 19
+      },
+      "sections_missing_link_blocks": [
+        {
+          "section_id": "section_gypo7u_01",
+          "section_title": "Гражданство для Преднестровья",
+          "historical_url_count": 2
+        }
+      ],
+      "sections_with_missing_urls": [
+        {
+          "section_id": "section_1qsm9cd_01",
+          "section_title": "Папа римский (3)",
+          "segment_id": "links_section_1qsm9cd_01",
+          "current_url_count": 1,
+          "historical_url_count": 3,
+          "missing_urls": [
+            "https://v16m.tiktokcdn-us.com/a1b49869ba09353cb84b76327a999a6c/6a0a3dd7/video/tos/useast2a/tos-useast2a-ve-0068-euttp/okIIEQGdjOeEARGUyLMPeOxKeJvIRIDgMUHgD1/?a=1233&bti=OUBzOTg7QGo6OjZAL3AjLTAzYCMxNDNg&&bt=2359&ft=4bUg3M9h8Zmo0ujO1a4jV_E.inWrKsd.&mime_type=video_mp4&rc=MzRnZTM5PGc0MzY5N2hnOkBpMzp2O3U5cmQ2OzMzZjczNUBgNTZgLS9gNmExLmEvY2FiYSNjaGlyMmQ0ZjFhLS1kMTNzcw%3D%3D&vvpl=1&l=20260517161435EC4C66F9610A24A8C9A7&btag=e000b0000",
+            "https://youtu.be/Mw-ZbA-cKqk?si=FmJaQ9dje9B4vvCu"
+          ]
+        }
+      ],
+      "current_total_links_across_historical_sections": 15,
+      "suspicious": true
+    }
+  ]
 }

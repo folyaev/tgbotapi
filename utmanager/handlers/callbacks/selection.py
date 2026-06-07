@@ -20,6 +20,7 @@ from utmanager.db import (
     item_get,
     item_update_bucket,
     item_update_topic_id,
+    last_topic_set,
     selection_set,
 )
 from utmanager.ui import add_reaction_done, kb_for_progress, kb_for_topic_picker
@@ -131,6 +132,8 @@ async def cb_pick(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     selection_set(chat_id, progress_msg_id, topic_id)
     record = filemap_get(chat_id, progress_msg_id)
     bucket = record[1] if record else current_bucket(msg.date)
+    if topic_id:
+        last_topic_set(chat_id, bucket, topic_id)
     origin_message_id = record[4] if record else (msg.reply_to_message.message_id if msg.reply_to_message else 0)
     origin_ids: list[int] = []
     entries = filemap_entries(chat_id, progress_msg_id)

@@ -15,6 +15,7 @@ from utmanager.db import (
     item_get,
     item_update_bucket,
     item_update_topic_id,
+    last_topic_set,
     reuse_state_clear,
     reuse_state_get,
     reuse_state_set,
@@ -111,6 +112,7 @@ async def _reuse_apply_topic(
     item_update_topic_id(item_chat_id, item_message_id, topic_id)
     item_update_bucket(item_chat_id, item_message_id, topic_bucket)
     item_apply_topic_tags(item_chat_id, item_message_id, topic_id)
+    last_topic_set(item_chat_id, topic_bucket, topic_id)
 
     file_info = filemap_by_origin(item_chat_id, item_message_id)
     if file_info:
