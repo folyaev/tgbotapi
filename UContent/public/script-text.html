@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UContent Script Text</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <strong>UContent</strong>
+        <span id="status">document-first mode</span>
+      </div>
+      <form id="scrape-form" class="scrape-form">
+        <input id="notion-url" type="url" placeholder="Notion URL" autocomplete="off" />
+        <button type="submit">Scrape</button>
+      </form>
+      <select id="scrape-select" title="Saved scrapes">
+        <option value="">Latest</option>
+      </select>
+    </header>
+    <main id="document" class="document">
+      <p class="empty">Paste a Notion URL and scrape. The markdown will render here without segmentation.</p>
+    </main>
+    <script src="/script-text.js" type="module"></script>
+  </body>
+</html>
