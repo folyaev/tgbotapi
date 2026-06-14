@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>UContent Script Text</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -19,10 +20,34 @@
       <select id="scrape-select" title="Saved scrapes">
         <option value="">Latest</option>
       </select>
+      <button id="notion-refresh" type="button" disabled title="Refresh Notion">↻</button>
+      <button id="restore-latest" type="button" disabled title="Restore previous refresh">↩</button>
+      <button id="xml-export" type="button" disabled>XML</button>
     </header>
     <main id="document" class="document">
       <p class="empty">Paste a Notion URL and scrape. The markdown will render here without segmentation.</p>
     </main>
+    <div id="media-picker" class="media-picker" hidden>
+      <div class="media-picker-panel">
+        <div class="media-picker-head">
+          <div>
+            <strong>Media</strong>
+            <span id="media-picker-topic"></span>
+          </div>
+          <button id="media-picker-close" type="button">×</button>
+        </div>
+        <div class="media-picker-actions">
+          <button id="media-upload-button" type="button">Upload file</button>
+          <input id="media-upload-input" type="file" hidden />
+        </div>
+        <form id="media-download-form" class="media-download-form">
+          <input id="media-download-url" type="url" placeholder="Media URL" autocomplete="off" />
+          <button id="media-download-button" type="submit">Download URL</button>
+        </form>
+        <div id="media-download-status" class="media-download-status"></div>
+        <div id="media-picker-list" class="media-picker-list"></div>
+      </div>
+    </div>
     <script src="/script-text.js" type="module"></script>
   </body>
 </html>

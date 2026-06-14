@@ -3,6 +3,29 @@ const input = document.querySelector("#notion-url");
 const statusEl = document.querySelector("#status");
 const documentEl = document.querySelector("#document");
 const selectEl = document.querySelector("#scrape-select");
+const xmlExportButton = document.querySelector("#xml-export");
+const notionRefreshButton = document.querySelector("#notion-refresh");
+const restoreLatestButton = document.querySelector("#restore-latest");
+const mediaPickerEl = document.querySelector("#media-picker");
+const mediaPickerTopicEl = document.querySelector("#media-picker-topic");
+const mediaPickerListEl = document.querySelector("#media-picker-list");
+const mediaPickerCloseButton = document.querySelector("#media-picker-close");
+const mediaUploadButton = document.querySelector("#media-upload-button");
+const mediaUploadInput = document.querySelector("#media-upload-input");
+const mediaDownloadForm = document.querySelector("#media-download-form");
+const mediaDownloadUrlInput = document.querySelector("#media-download-url");
+const mediaDownloadButton = document.querySelector("#media-download-button");
+const mediaDownloadStatusEl = document.querySelector("#media-download-status");
+
+let currentScrape = null;
+let currentLines = [];
+let currentSegments = [];
+let activeMediaSegmentId = "";
+let activeMediaTopic = "";
+let saveTimer = null;
+let activeDownloadPoll = null;
+let pendingFocusStart = null;
+let lastFocusedSegmentId = "";
 
 function setStatus(message) {
   statusEl.textContent = message;
@@ -20,6 +43,14 @@ function isUrlLine(line) {
   return /^https?:\/\/\S+$/i.test(String(line ?? "").trim());
 }
 
+function segmentKind(text) {
+  const trimmed = String(text ?? "").trim();
+  if (!trimmed) return "";
+  if (isUrlLine(trimmed) && !trimmed.includes("\n")) return "link";
+  if (trimmed.startsWith("/")) return "direction";
+  return "text";
+}
+
 function hostOf(url) {
   try {
     return new URL(url).hostname.replace(/^www\./i, "");
@@ -28,39 +59,11 @@ function hostOf(url) {
   }
 }
 
-function blockForLine(line, index) {
-  const trimmed = String(line ?? "").trim();
-  if (!trimmed) return null;
-  if (trimmed === "Оформление видео") return null;
-  if (trimmed.startsWith("# ")) {
-    return `<h1 class="block heading-1" data-line="${index}">${escapeHtml(trimmed.replace(/^#\s+/, ""))}</h1>`;
-  }
-  if (trimmed.startsWith("### ")) {
-    return `<h2 class="block heading-3" data-line="${index}">${escapeHtml(trimmed.replace(/^###\s+/, ""))}</h2>`;
-  }
-  if (isUrlLine(trimmed)) {
-    const safeUrl = escapeHtml(trimmed);
-    const host = escapeHtml(hostOf(trimmed));
-    return `
-      <div class="block link-line" data-line="${index}">
-        <a class="link-url" href="${safeUrl}" target="_blank" rel="noreferrer">${safeUrl}</a>
-        <a class="link-preview is-empty" href="${safeUrl}" target="_blank" rel="noreferrer" data-preview-url="${safeUrl}">
-          <img alt="" loading="lazy" />
-          <span class="link-preview-copy">
-            <strong>${host}</strong>
-            <span></span>
-            <em>${host}</em>
-          </span>
-        </a>
-      </div>
-    `;
-  }
-  const className = trimmed.startsWith("/") ? "direction" : "paragraph";
-  return `<p class="block ${className}" data-line="${index}">${escapeHtml(trimmed)}</p>`;
+function shouldHideLine(line) {
+  return String(line ?? "").trim() === "\u041e\u0444\u043e\u0440\u043c\u043b\u0435\u043d\u0438\u0435 \u0432\u0438\u0434\u0435\u043e";
 }
 
-function parseDocumentSections(content) {
-  const lines = String(content ?? "").split(/\r?\n/);
+function parseDocumentSections(lines) {
   const prelude = [];
   const sections = [];
   let current = null;
@@ -69,54 +72,558 @@ function parseDocumentSections(content) {
     const trimmed = String(line ?? "").trim();
     if (trimmed.startsWith("### ")) {
       current = {
-        title: trimmed.replace(/^###\s+/, "").trim() || "Без темы",
+        title: trimmed.replace(/^###\s+/, "").trim() || "Untitled",
         lineIndex: index,
-        lines: []
+        lineIndexes: []
       };
       sections.push(current);
       return;
     }
-    const item = { line, index };
     if (current) {
-      current.lines.push(item);
+      current.lineIndexes.push(index);
     } else {
-      prelude.push(item);
+      prelude.push(index);
     }
   });
 
   return { prelude, sections };
 }
 
-function renderLines(items) {
-  return items
-    .map(({ line, index }) => blockForLine(line, index))
-    .filter(Boolean)
-    .join("\n");
+function parseSegmentBlocks(indexes) {
+  const blocks = [];
+  let current = null;
+
+  function flush() {
+    if (!current) return;
+    current.text = current.lines.join("\n").trim();
+    current.kind = segmentKind(current.text);
+    if (current.text && current.kind) blocks.push(current);
+    current = null;
+  }
+
+  for (const index of indexes) {
+    const line = currentLines[index] ?? "";
+    const trimmed = String(line).trim();
+    if (!trimmed || shouldHideLine(trimmed)) {
+      flush();
+      continue;
+    }
+    if (trimmed.startsWith("# ")) {
+      flush();
+      blocks.push({ start: index, end: index, kind: "heading", text: trimmed });
+      continue;
+    }
+    if (!current) current = { start: index, end: index, lines: [] };
+    current.end = index;
+    current.lines.push(line);
+  }
+  flush();
+  return blocks;
 }
 
-function renderSection(section, sectionIndex) {
-  const body = renderLines(section.lines);
-  const count = section.lines.filter(({ line }) => String(line ?? "").trim()).length;
+function segmentForBlock(block) {
+  return currentSegments.find((segment) => segment.start === block.start && segment.end === block.end) || null;
+}
+
+function segmentById(segmentId) {
+  return currentSegments.find((segment) => segment.id === segmentId) || null;
+}
+
+function headingBlock(block) {
+  return `<h1 class="block heading-1" data-start="${block.start}" data-end="${block.end}">${escapeHtml(block.text.replace(/^#\s+/, ""))}</h1>`;
+}
+
+function segmentLabel(kind) {
+  if (kind === "link") return "link";
+  if (kind === "direction") return "note";
+  return "text";
+}
+
+function effectiveSegmentType(block, segment) {
+  return segment?.type || block.kind || "text";
+}
+
+function mediaItemsForSegment(segment) {
+  const items = Array.isArray(segment?.media_items) ? segment.media_items : [];
+  const normalized = items
+    .filter((item) => item && typeof item === "object")
+    .map((item) => ({
+      url: String(item.url || "").trim(),
+      path: String(item.path || "").trim(),
+      thumbnail: String(item.thumbnail || "").trim(),
+      timecode: String(item.timecode || item.start_timecode || item.media_start_timecode || "").trim()
+    }))
+    .filter((item) => item.url || item.path || item.thumbnail);
+  const legacy = segment?.media
+    ? {
+        url: String(segment.media.url || "").trim(),
+        path: String(segment.media.path || "").trim(),
+        thumbnail: String(segment.media.thumbnail || "").trim(),
+        timecode: String(segment.media.timecode || segment.media.start_timecode || segment.media.media_start_timecode || "").trim()
+      }
+    : null;
+  if (legacy?.url || legacy?.path || legacy?.thumbnail) {
+    const exists = normalized.some((item) => item.url === legacy.url && item.path === legacy.path && item.thumbnail === legacy.thumbnail);
+    if (!exists) normalized.unshift(legacy);
+  }
+  return normalized;
+}
+
+function renderSegmentMediaItems(segment) {
+  const items = mediaItemsForSegment(segment);
+  if (!items.length) return "";
+  return `
+    <div class="segment-media-list">
+      ${items.map((item, index) => `
+        <div class="segment-media">
+          ${item.thumbnail ? `<img src="${escapeHtml(item.thumbnail)}" alt="" loading="lazy" />` : ""}
+          <span>${escapeHtml(item.url || item.path || item.thumbnail || "")}</span>
+          <label class="media-timecode" title="Start timecode">
+            <span>⏱</span>
+            <input value="${escapeHtml(item.timecode || "")}" placeholder="0:00" data-action="media-timecode" data-segment-id="${escapeHtml(segment?.id || "")}" data-media-index="${index}" />
+          </label>
+          <button type="button" data-action="remove-media" data-segment-id="${escapeHtml(segment?.id || "")}" data-media-index="${index}" title="Remove media">➖</button>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function segmentBlock(block) {
+  if (block.kind === "heading") return headingBlock(block);
+  const segment = segmentForBlock(block);
+  const trimmed = String(block.text ?? "").trim();
+  const safeText = escapeHtml(trimmed);
+  const kind = block.kind || "text";
+  const type = effectiveSegmentType(block, segment);
+  const isDone = Boolean(segment?.is_done);
+  const isLink = kind === "link";
+  const host = isLink ? escapeHtml(hostOf(trimmed)) : "";
+  const mediaHtml = renderSegmentMediaItems(segment);
+  const preview = isLink
+    ? `
+      <a class="link-preview is-empty" href="${safeText}" target="_blank" rel="noreferrer" data-preview-url="${safeText}">
+        <img alt="" loading="lazy" />
+        <span class="link-preview-copy">
+          <strong>${host}</strong>
+          <span></span>
+          <em>${host}</em>
+        </span>
+      </a>
+    `
+    : "";
+  return `
+    <div class="block content-segment is-${kind}${isDone ? " is-done" : ""}" data-segment-id="${escapeHtml(segment?.id || "")}" data-start="${block.start}" data-end="${block.end}">
+      <div class="content-segment-toolbar">
+        <span>${escapeHtml(type)}${segment?.id ? ` · ${escapeHtml(segment.id)}` : ""}</span>
+        <button type="button" data-action="move-up" data-start="${block.start}" data-end="${block.end}">↑</button>
+        <button type="button" data-action="move-down" data-start="${block.start}" data-end="${block.end}">↓</button>
+        <button type="button" data-action="attach-media" data-segment-id="${escapeHtml(segment?.id || "")}" title="Media">📎</button>
+        <button type="button" data-action="add-after" data-start="${block.start}" data-end="${block.end}">+</button>
+        <button type="button" data-action="delete-segment" data-start="${block.start}" data-end="${block.end}">➖</button>
+        <button type="button" class="${isDone ? "is-active" : ""}" data-action="toggle-done" data-segment-id="${escapeHtml(segment?.id || "")}" title="${isDone ? "Mark not done" : "Mark done"}">✓</button>
+      </div>
+      <textarea data-action="edit-segment" data-start="${block.start}" data-end="${block.end}" rows="1">${safeText}</textarea>
+      ${mediaHtml}
+      ${preview}
+    </div>
+  `;
+}
+
+function renderBlocks(indexes) {
+  return parseSegmentBlocks(indexes).map(segmentBlock).filter(Boolean).join("\n");
+}
+
+function segmentIsReady(block) {
+  const segment = segmentForBlock(block);
+  return Boolean(segment?.is_done);
+}
+
+function completionPercent(blocks) {
+  if (!blocks.length) return 0;
+  const ready = blocks.filter(segmentIsReady).length;
+  return Math.round((ready / blocks.length) * 100);
+}
+
+function renderSection(section) {
+  const blocks = parseSegmentBlocks(section.lineIndexes).filter((block) => block.kind !== "heading");
+  const body = blocks.map(segmentBlock).filter(Boolean).join("\n");
+  const percent = completionPercent(blocks);
   return `
     <details class="topic" open data-line="${section.lineIndex}">
       <summary>
         <span>${escapeHtml(section.title)}</span>
-        <em>${count} lines</em>
+        <button class="topic-add-button" type="button" data-action="add-topic-segment" data-line="${section.lineIndex}" title="Add segment">+</button>
+        <em class="${percent === 100 && blocks.length ? "is-complete" : ""}" title="${blocks.length ? `${percent}% ready` : "0% ready"}">${percent}%</em>
       </summary>
       <div class="topic-body">
-        ${body || '<p class="empty">Empty topic.</p>'}
+        ${body || `<button class="empty empty-topic-add" type="button" data-action="add-topic-segment" data-line="${section.lineIndex}">Empty topic. Add segment</button>`}
       </div>
     </details>
   `;
 }
 
-function renderMarkdown(content) {
-  const { prelude, sections } = parseDocumentSections(content);
-  const preludeHtml = renderLines(prelude);
+function renderDocument() {
+  const { prelude, sections } = parseDocumentSections(currentLines);
+  const preludeHtml = renderBlocks(prelude);
   const sectionsHtml = sections.map(renderSection).join("\n");
-  const html = [preludeHtml, sectionsHtml].filter(Boolean).join("\n");
-  documentEl.innerHTML = html || '<p class="empty">Empty scrape.</p>';
+  documentEl.innerHTML = [preludeHtml, sectionsHtml].filter(Boolean).join("\n") || '<p class="empty">Empty scrape.</p>';
+  xmlExportButton.disabled = !currentScrape?.id;
+  notionRefreshButton.disabled = !currentScrape?.id || !currentScrape?.url;
+  restoreLatestButton.disabled = !currentScrape?.id;
+  autosizeTextareas();
+  focusPendingSegment();
   loadPreviews();
+}
+
+function autosizeTextareas() {
+  document.querySelectorAll("textarea[data-action='edit-segment']").forEach((textarea) => {
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight + 2}px`;
+  });
+}
+
+function focusPendingSegment() {
+  if (pendingFocusStart === null) return;
+  const textarea = document.querySelector(`textarea[data-action="edit-segment"][data-start="${pendingFocusStart}"]`);
+  pendingFocusStart = null;
+  if (!textarea) return;
+  textarea.focus();
+  textarea.select();
+}
+
+function contentFromLines() {
+  return currentLines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
+}
+
+function scheduleSave() {
+  if (!currentScrape?.id) return;
+  clearTimeout(saveTimer);
+  setStatus("unsaved changes");
+  saveTimer = setTimeout(() => {
+    void saveNow();
+  }, 500);
+}
+
+async function saveNow() {
+  if (!currentScrape?.id) return;
+  const content = contentFromLines();
+  const response = await fetch(`/api/scrapes/${encodeURIComponent(currentScrape.id)}`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ content })
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    setStatus(data.error || "save failed");
+    return;
+  }
+  currentScrape = data.scrape;
+  setStatus(`${currentScrape.title || currentScrape.id} - saved`);
+  currentSegments = Array.isArray(currentScrape.segments) ? currentScrape.segments : [];
+  renderDocument();
+}
+
+function defaultSegmentText() {
+  return "Новый текст";
+}
+
+function allSegmentBlocks() {
+  const indexes = currentLines.map((_, index) => index);
+  return parseSegmentBlocks(indexes).filter((block) => block.kind !== "heading");
+}
+
+function spliceWithSeparators(firstStart, firstEnd, secondStart, secondEnd) {
+  const before = currentLines.slice(0, firstStart);
+  const first = currentLines.slice(firstStart, firstEnd + 1);
+  const between = currentLines.slice(firstEnd + 1, secondStart);
+  const second = currentLines.slice(secondStart, secondEnd + 1);
+  const after = currentLines.slice(secondEnd + 1);
+  currentLines = [...before, ...second, ...between, ...first, ...after];
+}
+
+function moveSegment(start, end, direction) {
+  const blocks = allSegmentBlocks();
+  const currentIndex = blocks.findIndex((block) => block.start === Number(start) && block.end === Number(end));
+  if (currentIndex < 0) return;
+  if (direction < 0 && currentIndex > 0) {
+    const prev = blocks[currentIndex - 1];
+    spliceWithSeparators(prev.start, prev.end, blocks[currentIndex].start, blocks[currentIndex].end);
+  } else if (direction > 0 && currentIndex < blocks.length - 1) {
+    const current = blocks[currentIndex];
+    const next = blocks[currentIndex + 1];
+    spliceWithSeparators(current.start, current.end, next.start, next.end);
+  } else {
+    return;
+  }
+  renderDocument();
+  scheduleSave();
+}
+
+function insertSegmentAfter(end) {
+  const insertAt = Math.max(0, Number(end) + 1);
+  currentLines.splice(insertAt, 0, "", defaultSegmentText(), "");
+  pendingFocusStart = insertAt + 1;
+  renderDocument();
+  scheduleSave();
+}
+
+function insertTopicSegment(headingIndex) {
+  let insertAt = currentLines.length;
+  for (let index = Number(headingIndex) + 1; index < currentLines.length; index += 1) {
+    if (String(currentLines[index] ?? "").trim().startsWith("### ")) {
+      insertAt = index;
+      break;
+    }
+  }
+  currentLines.splice(insertAt, 0, "", defaultSegmentText(), "");
+  pendingFocusStart = insertAt + 1;
+  renderDocument();
+  scheduleSave();
+}
+
+function deleteSegment(start, end) {
+  const first = Number(start);
+  const last = Number(end);
+  if (!Number.isInteger(first) || !Number.isInteger(last) || first < 0 || last < first) return;
+  currentLines.splice(first, last - first + 1);
+  renderDocument();
+  scheduleSave();
+}
+
+function replaceSegment(textarea) {
+  const first = Number(textarea.dataset.start);
+  const last = Number(textarea.dataset.end);
+  if (!Number.isInteger(first) || !Number.isInteger(last) || first < 0 || last < first) return;
+  const replacement = textarea.value.split(/\r?\n/);
+  currentLines.splice(first, last - first + 1, ...replacement);
+  const newEnd = first + replacement.length - 1;
+  textarea.dataset.end = String(newEnd);
+  const segment = textarea.closest(".content-segment");
+  if (segment) segment.dataset.end = String(newEnd);
+  autosizeTextareas();
+  scheduleSave();
+}
+
+async function patchSegment(segmentId, patch) {
+  if (!currentScrape?.id || !segmentId) return null;
+  const response = await fetch(`/api/scrapes/${encodeURIComponent(currentScrape.id)}/segments/${encodeURIComponent(segmentId)}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(patch)
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    setStatus(data.error || "segment update failed");
+    return null;
+  }
+  currentScrape = data.scrape;
+  currentSegments = Array.isArray(currentScrape.segments) ? currentScrape.segments : [];
+  renderDocument();
+  setStatus(`${currentScrape.title || currentScrape.id} - segment saved`);
+  return data.segment;
+}
+
+async function toggleSegmentDone(segmentId) {
+  const segment = segmentById(segmentId);
+  if (!segment) return;
+  await patchSegment(segmentId, { is_done: !Boolean(segment.is_done) });
+}
+
+async function addMediaToSegment(segmentId, item) {
+  if (!segmentId || !item) return null;
+  return patchSegment(segmentId, { add_media: item });
+}
+
+async function removeMediaFromSegment(segmentId, mediaIndex) {
+  if (!segmentId) return null;
+  return patchSegment(segmentId, { remove_media_index: Number(mediaIndex) });
+}
+
+async function updateMediaTimecode(segmentId, mediaIndex, timecode) {
+  const segment = segmentById(segmentId);
+  const index = Number(mediaIndex);
+  if (!segment || !Number.isInteger(index)) return null;
+  const items = mediaItemsForSegment(segment);
+  const item = items[index];
+  if (!item) return null;
+  return patchSegment(segmentId, {
+    update_media_index: index,
+    media_item: {
+      ...item,
+      timecode: String(timecode || "").trim()
+    }
+  });
+}
+
+function topicForSegment(segmentId, fallback = "") {
+  const segment = segmentById(segmentId);
+  return segment?.topic || fallback || "";
+}
+
+function mediaForFile(file) {
+  return {
+    url: "",
+    path: file.path || "",
+    thumbnail: file.thumbnail || ""
+  };
+}
+
+async function uploadMediaFileToSegment(file, segmentId, topic = "") {
+  if (!file || !segmentId) return null;
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 1) binary += String.fromCharCode(bytes[index]);
+  const response = await fetch("/api/media/upload", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      topic: topicForSegment(segmentId, topic),
+      fileName: file.name || defaultClipboardFileName(file),
+      dataBase64: btoa(binary)
+    })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Upload failed");
+  await addMediaToSegment(segmentId, mediaForFile(data.file));
+  return data.file;
+}
+
+function defaultClipboardFileName(file) {
+  const type = String(file?.type || "").toLowerCase();
+  if (type.includes("png")) return "clipboard.png";
+  if (type.includes("jpeg") || type.includes("jpg")) return "clipboard.jpg";
+  if (type.includes("webp")) return "clipboard.webp";
+  if (type.includes("gif")) return "clipboard.gif";
+  if (type.includes("mp4")) return "clipboard.mp4";
+  return "clipboard-file";
+}
+
+function mediaFileFromTransfer(dataTransfer) {
+  const files = [...(dataTransfer?.files || [])].filter((file) => file && file.size > 0);
+  if (files.length) return files[0];
+  const items = [...(dataTransfer?.items || [])];
+  for (const item of items) {
+    if (item.kind === "file") {
+      const file = item.getAsFile();
+      if (file && file.size > 0) return file;
+    }
+  }
+  return null;
+}
+
+function renderMediaFileButton(file, isTopicFile) {
+  const thumb = file.thumbnail ? `<img src="${escapeHtml(file.thumbnail)}" alt="" loading="lazy" />` : '<span class="media-file-icon">file</span>';
+  return `
+    <button class="media-file-option${isTopicFile ? " is-topic" : ""}" type="button" data-media-path="${escapeHtml(file.path)}">
+      ${thumb}
+      <span>
+        <strong>${escapeHtml(file.name || file.path)}</strong>
+        <em>${escapeHtml(file.path || "")}</em>
+      </span>
+    </button>
+  `;
+}
+
+async function loadMediaLibrary(topic) {
+  mediaPickerListEl.innerHTML = '<p class="empty">Loading media...</p>';
+  const response = await fetch(`/api/media?topic=${encodeURIComponent(topic || "")}`);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Media list failed");
+  activeMediaTopic = data.topic || topic || "";
+  mediaPickerTopicEl.textContent = activeMediaTopic ? `PAMPAM/${activeMediaTopic}` : "PAMPAM";
+  const topicFiles = Array.isArray(data.topic_files) ? data.topic_files : [];
+  const allFiles = Array.isArray(data.files) ? data.files : [];
+  const topicPaths = new Set(topicFiles.map((file) => file.path));
+  const otherFiles = allFiles.filter((file) => !topicPaths.has(file.path)).slice(0, 120);
+  const html = [
+    topicFiles.length ? `<h3>Topic folder</h3>${topicFiles.map((file) => renderMediaFileButton(file, true)).join("")}` : '<h3>Topic folder</h3><p class="empty">Folder is empty.</p>',
+    otherFiles.length ? `<h3>All PAMPAM</h3>${otherFiles.map((file) => renderMediaFileButton(file, false)).join("")}` : ""
+  ].join("");
+  mediaPickerListEl.innerHTML = html || '<p class="empty">No media files found.</p>';
+}
+
+async function openMediaPicker(segmentId) {
+  const segment = segmentById(segmentId);
+  if (!segment) return;
+  activeMediaSegmentId = segmentId;
+  activeMediaTopic = segment.topic || "";
+  mediaPickerEl.hidden = false;
+  await loadMediaLibrary(activeMediaTopic).catch((error) => {
+    mediaPickerListEl.innerHTML = `<p class="empty">${escapeHtml(error.message || "Media list failed")}</p>`;
+  });
+}
+
+function closeMediaPicker() {
+  mediaPickerEl.hidden = true;
+  activeMediaSegmentId = "";
+  activeMediaTopic = "";
+  mediaUploadInput.value = "";
+  mediaDownloadUrlInput.value = "";
+  mediaDownloadStatusEl.textContent = "";
+  if (activeDownloadPoll) {
+    clearTimeout(activeDownloadPoll);
+    activeDownloadPoll = null;
+  }
+}
+
+async function uploadMediaFile(file) {
+  if (!file || !activeMediaSegmentId) return;
+  await uploadMediaFileToSegment(file, activeMediaSegmentId, activeMediaTopic);
+  closeMediaPicker();
+}
+
+function setMediaDownloadStatus(message) {
+  mediaDownloadStatusEl.textContent = message || "";
+}
+
+async function pollMediaDownload(jobId) {
+  const response = await fetch(`/api/media-download/${encodeURIComponent(jobId)}`);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Download status failed");
+  const job = data.job || {};
+  if (job.state === "completed") {
+    const outputFiles = Array.isArray(job.output_files) ? job.output_files : [];
+    const firstFile = outputFiles[0];
+    setMediaDownloadStatus(firstFile ? `Downloaded: ${firstFile.name || firstFile.path}` : "Downloaded");
+    if (firstFile && activeMediaSegmentId) {
+      await addMediaToSegment(activeMediaSegmentId, mediaForFile(firstFile));
+    }
+    await loadMediaLibrary(activeMediaTopic).catch(() => null);
+    closeMediaPicker();
+    return;
+  }
+  if (job.state === "failed") {
+    throw new Error(job.error || "Download failed");
+  }
+  const progress = Number.isFinite(Number(job.progress)) ? `${Math.round(Number(job.progress))}%` : "";
+  setMediaDownloadStatus(`Downloading ${progress}`.trim());
+  activeDownloadPoll = setTimeout(() => {
+    void pollMediaDownload(jobId).catch((error) => {
+      setMediaDownloadStatus(error.message || "Download failed");
+      mediaDownloadButton.disabled = false;
+      activeDownloadPoll = null;
+    });
+  }, 1200);
+}
+
+async function downloadMediaUrl(url) {
+  if (!url || !activeMediaSegmentId) return;
+  mediaDownloadButton.disabled = true;
+  setMediaDownloadStatus("Queued...");
+  const response = await fetch("/api/media-download", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      url,
+      topic: activeMediaTopic,
+      segmentId: activeMediaSegmentId
+    })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Download failed");
+  await pollMediaDownload(data.job.id);
 }
 
 async function loadPreviews() {
@@ -151,11 +658,13 @@ async function loadScrape(id = "") {
   const response = await fetch(endpoint);
   if (!response.ok) throw new Error("No saved scrape yet");
   const data = await response.json();
-  const scrape = data.scrape;
-  if (!scrape) throw new Error("No saved scrape yet");
-  renderMarkdown(scrape.content);
-  setStatus(`${scrape.title || scrape.id} · ${String(scrape.content ?? "").split(/\r?\n/).length} lines`);
-  input.value = scrape.url || "";
+  currentScrape = data.scrape;
+  if (!currentScrape) throw new Error("No saved scrape yet");
+  currentLines = String(currentScrape.content ?? "").split(/\r?\n/);
+  currentSegments = Array.isArray(currentScrape.segments) ? currentScrape.segments : [];
+  renderDocument();
+  setStatus(`${currentScrape.title || currentScrape.id} - ${currentLines.length} lines`);
+  input.value = currentScrape.url || "";
 }
 
 async function refreshScrapeList() {
@@ -167,10 +676,146 @@ async function refreshScrapeList() {
   for (const item of items) {
     const option = document.createElement("option");
     option.value = item.id;
-    option.textContent = `${item.title || item.id} · ${item.created_at || ""}`;
+    option.textContent = `${item.title || item.id} - ${item.created_at || ""}`;
     selectEl.append(option);
   }
 }
+
+documentEl.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-action]");
+  if (!button) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const action = button.dataset.action;
+  if (action === "add-after") insertSegmentAfter(button.dataset.end);
+  if (action === "delete-segment") deleteSegment(button.dataset.start, button.dataset.end);
+  if (action === "add-topic-segment") insertTopicSegment(button.dataset.line);
+  if (action === "move-up") moveSegment(button.dataset.start, button.dataset.end, -1);
+  if (action === "move-down") moveSegment(button.dataset.start, button.dataset.end, 1);
+  if (action === "toggle-done") void toggleSegmentDone(button.dataset.segmentId);
+  if (action === "attach-media") void openMediaPicker(button.dataset.segmentId);
+  if (action === "remove-media") void removeMediaFromSegment(button.dataset.segmentId, button.dataset.mediaIndex);
+});
+
+documentEl.addEventListener("change", (event) => {
+  const inputEl = event.target.closest?.("input[data-action='media-timecode']");
+  if (!inputEl) return;
+  void updateMediaTimecode(inputEl.dataset.segmentId, inputEl.dataset.mediaIndex, inputEl.value);
+});
+
+documentEl.addEventListener("keydown", (event) => {
+  const inputEl = event.target.closest?.("input[data-action='media-timecode']");
+  if (!inputEl || event.key !== "Enter") return;
+  event.preventDefault();
+  inputEl.blur();
+});
+
+documentEl.addEventListener("focusin", (event) => {
+  const segmentEl = event.target.closest?.(".content-segment[data-segment-id]");
+  const segmentId = segmentEl?.dataset?.segmentId || "";
+  if (segmentId) lastFocusedSegmentId = segmentId;
+});
+
+documentEl.addEventListener("dragover", (event) => {
+  const segmentEl = event.target.closest?.(".content-segment[data-segment-id]");
+  if (!segmentEl || !event.dataTransfer?.types?.includes("Files")) return;
+  event.preventDefault();
+  segmentEl.classList.add("is-drop-target");
+  event.dataTransfer.dropEffect = "copy";
+});
+
+documentEl.addEventListener("dragleave", (event) => {
+  const segmentEl = event.target.closest?.(".content-segment[data-segment-id]");
+  if (!segmentEl || segmentEl.contains(event.relatedTarget)) return;
+  segmentEl.classList.remove("is-drop-target");
+});
+
+documentEl.addEventListener("drop", async (event) => {
+  const segmentEl = event.target.closest?.(".content-segment[data-segment-id]");
+  if (!segmentEl) return;
+  const file = mediaFileFromTransfer(event.dataTransfer);
+  if (!file) return;
+  event.preventDefault();
+  segmentEl.classList.remove("is-drop-target");
+  const segmentId = segmentEl.dataset.segmentId || "";
+  try {
+    setStatus("uploading dropped media...");
+    await uploadMediaFileToSegment(file, segmentId);
+  } catch (error) {
+    setStatus(error.message || "Upload failed");
+  }
+});
+
+document.addEventListener("paste", async (event) => {
+  if (event.target.closest?.("#media-picker")) return;
+  const file = mediaFileFromTransfer(event.clipboardData);
+  if (!file) return;
+  const segmentEl = event.target.closest?.(".content-segment[data-segment-id]");
+  const segmentId = segmentEl?.dataset?.segmentId || lastFocusedSegmentId;
+  if (!segmentId) return;
+  event.preventDefault();
+  try {
+    setStatus("uploading pasted media...");
+    await uploadMediaFileToSegment(file, segmentId);
+  } catch (error) {
+    setStatus(error.message || "Upload failed");
+  }
+});
+
+mediaPickerListEl.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-media-path]");
+  if (!button || !activeMediaSegmentId) return;
+  await addMediaToSegment(activeMediaSegmentId, {
+    url: "",
+    path: button.dataset.mediaPath || "",
+    thumbnail: button.querySelector("img")?.getAttribute("src") || ""
+  });
+  closeMediaPicker();
+});
+
+mediaPickerCloseButton.addEventListener("click", closeMediaPicker);
+
+mediaPickerEl.addEventListener("click", (event) => {
+  if (event.target === mediaPickerEl) closeMediaPicker();
+});
+
+mediaUploadButton.addEventListener("click", () => {
+  mediaUploadInput.click();
+});
+
+mediaUploadInput.addEventListener("change", async () => {
+  const file = mediaUploadInput.files?.[0];
+  if (!file) return;
+  mediaUploadButton.disabled = true;
+  try {
+    await uploadMediaFile(file);
+  } catch (error) {
+    setStatus(error.message || "Upload failed");
+  } finally {
+    mediaUploadButton.disabled = false;
+  }
+});
+
+mediaDownloadForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const url = mediaDownloadUrlInput.value.trim();
+  if (!url) return;
+  try {
+    await downloadMediaUrl(url);
+  } catch (error) {
+    setMediaDownloadStatus(error.message || "Download failed");
+    setStatus(error.message || "Download failed");
+  } finally {
+    mediaDownloadButton.disabled = false;
+  }
+});
+
+documentEl.addEventListener("input", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLTextAreaElement)) return;
+  if (target.dataset.action !== "edit-segment") return;
+  replaceSegment(target);
+});
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -187,8 +832,11 @@ form.addEventListener("submit", async (event) => {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Scrape failed");
-    renderMarkdown(data.scrape.content);
-    setStatus(`${data.scrape.title || data.scrape.id} · scraped`);
+    currentScrape = data.scrape;
+    currentLines = String(data.scrape.content ?? "").split(/\r?\n/);
+    currentSegments = Array.isArray(data.scrape.segments) ? data.scrape.segments : [];
+    renderDocument();
+    setStatus(`${data.scrape.title || data.scrape.id} - scraped`);
     await refreshScrapeList();
     selectEl.value = data.scrape.id;
   } catch (error) {
@@ -203,6 +851,61 @@ selectEl.addEventListener("change", async () => {
     await loadScrape(selectEl.value);
   } catch (error) {
     setStatus(error.message || "Could not load scrape");
+  }
+});
+
+xmlExportButton.addEventListener("click", () => {
+  if (!currentScrape?.id) return;
+  window.open(`/api/scrapes/${encodeURIComponent(currentScrape.id)}/export.xml`, "_blank", "noopener,noreferrer");
+});
+
+notionRefreshButton.addEventListener("click", async () => {
+  if (!currentScrape?.id) return;
+  notionRefreshButton.disabled = true;
+  restoreLatestButton.disabled = true;
+  setStatus("refreshing Notion...");
+  try {
+    const response = await fetch(`/api/scrapes/${encodeURIComponent(currentScrape.id)}/refresh`, {
+      method: "POST"
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Refresh failed");
+    currentScrape = data.scrape;
+    currentLines = String(currentScrape.content ?? "").split(/\r?\n/);
+    currentSegments = Array.isArray(currentScrape.segments) ? currentScrape.segments : [];
+    renderDocument();
+    setStatus("refreshed");
+    await refreshScrapeList();
+    selectEl.value = currentScrape.id;
+  } catch (error) {
+    setStatus(error.message || "Refresh failed");
+  } finally {
+    notionRefreshButton.disabled = !currentScrape?.id || !currentScrape?.url;
+    restoreLatestButton.disabled = !currentScrape?.id;
+  }
+});
+
+restoreLatestButton.addEventListener("click", async () => {
+  if (!currentScrape?.id) return;
+  restoreLatestButton.disabled = true;
+  setStatus("restoring...");
+  try {
+    const response = await fetch(`/api/scrapes/${encodeURIComponent(currentScrape.id)}/restore-latest`, {
+      method: "POST"
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Restore failed");
+    currentScrape = data.scrape;
+    currentLines = String(currentScrape.content ?? "").split(/\r?\n/);
+    currentSegments = Array.isArray(currentScrape.segments) ? currentScrape.segments : [];
+    renderDocument();
+    setStatus("restored");
+    await refreshScrapeList();
+    selectEl.value = currentScrape.id;
+  } catch (error) {
+    setStatus(error.message || "Restore failed");
+  } finally {
+    restoreLatestButton.disabled = !currentScrape?.id;
   }
 });
 

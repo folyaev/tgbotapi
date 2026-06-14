@@ -9,7 +9,7 @@
       "doc_2026-06-07T23-58-23-135Z_3ZHpq5"
     ],
     "max_historical_links": 34,
-    "generated_at": "2026-06-08T15:56:59.899Z"
+    "generated_at": "2026-06-14T19:15:13.671Z"
   },
   "results": [
     {
@@ -99,61 +99,30 @@
     },
     {
       "doc_id": "doc_2026-06-07T23-58-23-135Z_3ZHpq5",
-      "versions_scanned": 3,
+      "versions_scanned": 21,
       "current": {
-        "segment_count": 254,
-        "link_block_count": 25,
-        "total_links": 24
+        "segment_count": 116,
+        "link_block_count": 24,
+        "total_links": 30
       },
       "historical": {
-        "section_count": 20,
-        "total_unique_links": 24
+        "section_count": 3,
+        "total_unique_links": 6
       },
       "sections_missing_link_blocks": [],
       "sections_with_missing_urls": [
         {
-          "section_id": "section_1wpjw8v_01",
-          "section_title": "Афганистан",
-          "segment_id": "links_section_1wpjw8v_01_003",
-          "current_url_count": 0,
-          "historical_url_count": 1,
-          "missing_urls": [
-            "https://t.me/sharemed/23320"
-          ]
-        },
-        {
-          "section_id": "section_jioouw_01",
-          "section_title": "Дуров",
-          "segment_id": "links_section_jioouw_01_008",
+          "section_id": "section_nbviia_01",
+          "section_title": "500 млн Биста",
+          "segment_id": "links_section_nbviia_01",
           "current_url_count": 1,
           "historical_url_count": 2,
           "missing_urls": [
-            "https://www.rbc.ru/rbcfreenews/6902295d9a79473d2460d7e8?from=newsfeed"
-          ]
-        },
-        {
-          "section_id": "section_1jbbtvo_01",
-          "section_title": "Grokipedia",
-          "segment_id": "links_section_1jbbtvo_01_013",
-          "current_url_count": 1,
-          "historical_url_count": 3,
-          "missing_urls": [
-            "https://grokipedia.com/",
-            "https://ria.ru/20251028/grokipedija-2051088723.html"
-          ]
-        },
-        {
-          "section_id": "section_w4c39v_01",
-          "section_title": "Ледяные новости",
-          "segment_id": "links_section_w4c39v_01_019",
-          "current_url_count": 1,
-          "historical_url_count": 2,
-          "missing_urls": [
-            "https://portnews.ru/news/383830/#:~:text=%D0%9D%D0%B0%D1%83%D1%87%D0%BD%D0%B0%D1%8F%20%D1%8D%D0%BA%D1%81%D0%BF%D0%B5%D0%B4%D0%B8%D1%86%D0%B8%D1%8F%2C%20%D0%B2%D1%8B%D0%BF%D0%BE%D0%BB%D0%BD%D1%8F%D0%B2%D1%88%D0%B0%D1%8F%20%D0%B7%D0%B0%D0%B4%D0%B0%D1%87%D1%83%20%D0%BF%D0%BE,%D0%B7%D0%B0%D0%B2%D0%B5%D1%80%D1%88%D0%B8%D0%BB%D0%B0%D1%81%D1%8C%2027%20%D0%BE%D0%BA%D1%82%D1%8F%D0%B1%D1%80%D1%8F%202025%20%D0%B3%D0%BE%D0%B4%D0%B0"
+            "https://vkvideo.ru/clip-66678575_456635932"
           ]
         }
       ],
-      "current_total_links_across_historical_sections": 19,
+      "current_total_links_across_historical_sections": 5,
       "suspicious": true
     }
   ]
