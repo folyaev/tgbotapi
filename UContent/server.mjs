@@ -7,8 +7,34 @@ import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { scrapeNotionPage } from "../VBAUT/HeadlessNotion/notion-scraper.js";
 import { createXmlExportUtils } from "../VBAUT/backend/src/services/xml-export.js";
+import { startTelegramBot, triggerWebBroadcast } from "./telegram-bot.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+async function loadEnv(dir) {
+  try {
+    const envPath = path.join(dir, ".env");
+    const content = await fs.readFile(envPath, "utf8");
+    for (const line of content.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const index = trimmed.indexOf("=");
+      if (index > 0) {
+        const key = trimmed.slice(0, index).trim();
+        const val = trimmed.slice(index + 1).trim().replace(/^['"]|['"]$/g, "");
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
+await loadEnv(__dirname);
+await loadEnv(path.join(__dirname, ".."));
+
 const PORT = Number(process.env.UCONTENT_PORT || 5197);
 const DATA_DIR = path.join(__dirname, "data", "scrapes");
 const HISTORY_DIR = path.join(DATA_DIR, "history");
@@ -74,9 +100,9 @@ function normalizeNotionUrl(value) {
 }
 
 function scrapeIdFromUrl(url) {
-  const match = String(url).match(/[0-9a-f]{32}/i);
-  const pageId = match ? match[0].toLowerCase() : Date.now().toString(36);
-  return `notion-${pageId}-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const suffix = Math.random().toString(36).slice(2, 7).padEnd(5, "x");
+  return `doc_${timestamp}_${suffix}`;
 }
 
 async function readBody(req) {
@@ -393,7 +419,8 @@ async function resolveDownloaderTools() {
     process.env.FFMPEG_PATH,
     process.env.MEDIA_FFMPEG_PATH,
     path.join(VBAUT_DOWNLOADER_DIR, "local", "bin", isWindows ? "ffmpeg.exe" : "ffmpeg"),
-    path.join(VBAUT_DOWNLOADER_DIR, "local", "ffmpeg", isWindows ? "ffmpeg.exe" : "ffmpeg")
+    path.join(VBAUT_DOWNLOADER_DIR, "local", "ffmpeg", isWindows ? "ffmpeg.exe" : "ffmpeg"),
+    path.join(VBAUT_DOWNLOADER_DIR, "3rdParty", "ffmpeg", "bin", isWindows ? "ffmpeg.exe" : "ffmpeg")
   ]);
   const galleryDl = await resolveFirstExisting([
     process.env.MEDIA_GALLERYDL_PATH,
@@ -1039,40 +1066,103 @@ function buildXmlForScrape(scrape) {
     .map((segment, index) => {
       const start = index * 150;
       const end = start + 150;
-      const prefix = segment.kind === "link" ? "LINK" : segment.kind === "direction" ? "NOTE" : "TEXT";
-      const topic = segment.topic ? `${segment.topic}: ` : "";
-      const mediaItems = normalizeMediaItems(segment);
+      const markerName = segment.text;
       return [
         "    <marker>",
-        `      <name>${xmlEscape(`${prefix} ${topic}${segment.text}`)}</name>`,
-        `      <id>${xmlEscape(segment.id || `segment-${index + 1}`)}</id>`,
-        `      <type>${xmlEscape(segment.type || segment.kind || "text")}</type>`,
-        `      <done>${segment.is_done ? "TRUE" : "FALSE"}</done>`,
-        `      <topic>${xmlEscape(segment.topic || "")}</topic>`,
-        ...mediaItems.flatMap((item, itemIndex) => [
-          `      <mediaitem index="${itemIndex + 1}">`,
-          item.url ? `        <mediaurl>${xmlEscape(item.url)}</mediaurl>` : "",
-          item.path ? `        <mediapath>${xmlEscape(item.path)}</mediapath>` : "",
-          item.thumbnail ? `        <thumbnail>${xmlEscape(item.thumbnail)}</thumbnail>` : "",
-          item.timecode ? `        <timecode>${xmlEscape(item.timecode)}</timecode>` : "",
-          "      </mediaitem>"
-        ].filter(Boolean)),
-        `      <comment>${xmlEscape(segment.text)}</comment>`,
+        "      <comment></comment>",
+        `      <name>${xmlEscape(markerName)}</name>`,
         `      <in>${start}</in>`,
         `      <out>${end}</out>`,
+        "      <pproColor>MarkerColor.1</pproColor>",
+        `      <comment>${xmlEscape(segment.text)}</comment>`,
         "    </marker>"
       ].join("\n");
     })
     .join("\n");
+
+  const duration = Math.max(150, segments.length * 150);
+
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     "<!DOCTYPE xmeml>",
     '<xmeml version="4">',
-    '  <sequence id="ucontent-sequence">',
+    '  <sequence id="sequence-1">',
+    "    <uuid>00000000-0000-0000-0000-000000000000</uuid>",
     `    <name>${xmlEscape(title)}</name>`,
-    "    <rate><timebase>50</timebase><ntsc>FALSE</ntsc></rate>",
-    "    <duration>0</duration>",
+    `    <duration>${duration}</duration>`,
+    "    <rate>",
+    "      <timebase>50</timebase>",
+    "      <ntsc>FALSE</ntsc>",
+    "    </rate>",
+    "    <media>",
+    "      <video>",
+    "        <format>",
+    "          <samplecharacteristics>",
+    "            <rate>",
+    "              <timebase>50</timebase>",
+    "              <ntsc>FALSE</ntsc>",
+    "            </rate>",
+    "            <width>1920</width>",
+    "            <height>1080</height>",
+    "            <anamorphic>FALSE</anamorphic>",
+    "            <pixelaspectratio>square</pixelaspectratio>",
+    "            <fielddominance>none</fielddominance>",
+    "            <colordepth>24</colordepth>",
+    "          </samplecharacteristics>",
+    "        </format>",
+    "        <track>",
+    "          <enabled>TRUE</enabled>",
+    "          <locked>FALSE</locked>",
+    "        </track>",
+    "      </video>",
+    "      <audio>",
+    "        <numOutputChannels>2</numOutputChannels>",
+    "        <format>",
+    "          <samplecharacteristics>",
+    "            <depth>16</depth>",
+    "            <samplerate>48000</samplerate>",
+    "          </samplecharacteristics>",
+    "        </format>",
+    "        <outputs>",
+    "          <group>",
+    "            <index>1</index>",
+    "            <numchannels>1</numchannels>",
+    "            <downmix>0</downmix>",
+    "            <channel>",
+    "              <index>1</index>",
+    "            </channel>",
+    "          </group>",
+    "          <group>",
+    "            <index>2</index>",
+    "            <numchannels>1</numchannels>",
+    "            <downmix>0</downmix>",
+    "            <channel>",
+    "              <index>2</index>",
+    "            </channel>",
+    "          </group>",
+    "        </outputs>",
+    "        <track>",
+    "          <enabled>TRUE</enabled>",
+    "          <locked>FALSE</locked>",
+    "          <outputchannelindex>1</outputchannelindex>",
+    "        </track>",
+    "        <track>",
+    "          <enabled>TRUE</enabled>",
+    "          <locked>FALSE</locked>",
+    "          <outputchannelindex>2</outputchannelindex>",
+    "        </track>",
+    "      </audio>",
+    "    </media>",
     markers,
+    "    <timecode>",
+    "      <rate>",
+    "        <timebase>50</timebase>",
+    "        <ntsc>FALSE</ntsc>",
+    "      </rate>",
+    "      <string>00:00:00:00</string>",
+    "      <frame>0</frame>",
+    "      <displayformat>NDF</displayformat>",
+    "    </timecode>",
     "  </sequence>",
     "</xmeml>"
   ].filter(Boolean).join("\n");
@@ -1281,7 +1371,24 @@ async function handleRequest(req, res) {
       if (parts[3] === "export.xml") {
         const scrape = await readScrape(id);
         const xmlPayload = await buildVbautXmlForScrape(scrape);
-        text(res, 200, xmlPayload?.clipCount > 0 ? xmlPayload.xml : buildXmlForScrape(scrape), "application/xml; charset=utf-8");
+        const tools = await resolveDownloaderTools();
+        const ffmpegLocation = tools.ffmpeg_path ? path.dirname(tools.ffmpeg_path) : "";
+        const { buildContentDisposition } = createXmlExportUtils({
+          execFileAsync,
+          downloaderTools: { ffmpegLocation },
+          getMediaDir: () => PAMPAM_ROOT,
+          normalizeMediaFilePath,
+          normalizeSectionTitleForMatch,
+          normalizeVisualDecisionInput,
+          safeResolveMediaPath: safeResolveMediaPathForRoot
+        });
+        const fileName = `${scrape.id}.xml`;
+        res.writeHead(200, {
+          "content-type": "application/xml; charset=utf-8",
+          "content-disposition": buildContentDisposition(fileName),
+          "cache-control": "no-store"
+        });
+        res.end(xmlPayload?.clipCount > 0 ? xmlPayload.xml : buildXmlForScrape(scrape));
         return;
       }
       json(res, 200, { scrape: await readScrape(id) });
@@ -1315,6 +1422,15 @@ async function handleRequest(req, res) {
         };
         await writeScrape(updated);
         json(res, 200, { scrape: updated, progress, report: segmentState.report });
+        return;
+      }
+      if (parts[3] === "send-to-tg") {
+        try {
+          const result = await triggerWebBroadcast(id);
+          json(res, 200, result);
+        } catch (error) {
+          json(res, 500, { error: error.message });
+        }
         return;
       }
       if (parts[3] === "restore-latest") {
@@ -1492,4 +1608,18 @@ server.on("error", (error) => {
 
 server.listen(PORT, () => {
   console.log(`UContent: http://localhost:${PORT}/script-text`);
+  startTelegramBot({
+    PORT,
+    readScrape,
+    writeScrape,
+    executeMediaDownload,
+    PAMPAM_ROOT,
+    DATA_DIR,
+    sanitizeMediaTopicName,
+    ensureTopicDir,
+    resolveDownloaderTools,
+    spawn
+  }).catch((err) => {
+    console.error("Failed to start Telegram Bot:", err);
+  });
 });

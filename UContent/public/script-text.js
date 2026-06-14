@@ -4,6 +4,7 @@ const statusEl = document.querySelector("#status");
 const documentEl = document.querySelector("#document");
 const selectEl = document.querySelector("#scrape-select");
 const xmlExportButton = document.querySelector("#xml-export");
+const tgSendButton = document.querySelector("#tg-send");
 const notionRefreshButton = document.querySelector("#notion-refresh");
 const restoreLatestButton = document.querySelector("#restore-latest");
 const mediaPickerEl = document.querySelector("#media-picker");
@@ -182,7 +183,7 @@ function renderSegmentMediaItems(segment) {
             <span>⏱</span>
             <input value="${escapeHtml(item.timecode || "")}" placeholder="0:00" data-action="media-timecode" data-segment-id="${escapeHtml(segment?.id || "")}" data-media-index="${index}" />
           </label>
-          <button type="button" data-action="remove-media" data-segment-id="${escapeHtml(segment?.id || "")}" data-media-index="${index}" title="Remove media">➖</button>
+          <button type="button" data-action="remove-media" data-segment-id="${escapeHtml(segment?.id || "")}" data-media-index="${index}" title="Remove media">-</button>
         </div>
       `).join("")}
     </div>
@@ -220,7 +221,7 @@ function segmentBlock(block) {
         <button type="button" data-action="move-down" data-start="${block.start}" data-end="${block.end}">↓</button>
         <button type="button" data-action="attach-media" data-segment-id="${escapeHtml(segment?.id || "")}" title="Media">📎</button>
         <button type="button" data-action="add-after" data-start="${block.start}" data-end="${block.end}">+</button>
-        <button type="button" data-action="delete-segment" data-start="${block.start}" data-end="${block.end}">➖</button>
+        <button type="button" data-action="delete-segment" data-start="${block.start}" data-end="${block.end}">-</button>
         <button type="button" class="${isDone ? "is-active" : ""}" data-action="toggle-done" data-segment-id="${escapeHtml(segment?.id || "")}" title="${isDone ? "Mark not done" : "Mark done"}">✓</button>
       </div>
       <textarea data-action="edit-segment" data-start="${block.start}" data-end="${block.end}" rows="1">${safeText}</textarea>
@@ -269,6 +270,7 @@ function renderDocument() {
   const sectionsHtml = sections.map(renderSection).join("\n");
   documentEl.innerHTML = [preludeHtml, sectionsHtml].filter(Boolean).join("\n") || '<p class="empty">Empty scrape.</p>';
   xmlExportButton.disabled = !currentScrape?.id;
+  tgSendButton.disabled = !currentScrape?.id;
   notionRefreshButton.disabled = !currentScrape?.id || !currentScrape?.url;
   restoreLatestButton.disabled = !currentScrape?.id;
   autosizeTextareas();
@@ -854,9 +856,71 @@ selectEl.addEventListener("change", async () => {
   }
 });
 
-xmlExportButton.addEventListener("click", () => {
+xmlExportButton.addEventListener("click", async () => {
   if (!currentScrape?.id) return;
-  window.open(`/api/scrapes/${encodeURIComponent(currentScrape.id)}/export.xml`, "_blank", "noopener,noreferrer");
+  const originalText = xmlExportButton.textContent;
+  try {
+    xmlExportButton.disabled = true;
+    xmlExportButton.textContent = "Exporting...";
+    setStatus("Exporting XML...");
+    
+    const response = await fetch(`/api/scrapes/${encodeURIComponent(currentScrape.id)}/export.xml`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || "Export failed");
+    }
+    
+    const blob = await response.blob();
+    const disposition = response.headers.get("content-disposition");
+    let fileName = `${currentScrape.id}.xml`;
+    if (disposition) {
+      const filenameStarMatch = disposition.match(/filename\*=UTF-8''([^;\n]+)/i);
+      if (filenameStarMatch && filenameStarMatch[1]) {
+        fileName = decodeURIComponent(filenameStarMatch[1]);
+      } else {
+        const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/i);
+        if (filenameMatch && filenameMatch[1]) {
+          fileName = filenameMatch[1];
+        }
+      }
+    }
+    
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    setStatus("XML exported successfully");
+  } catch (error) {
+    setStatus(error.message || "Export failed");
+  } finally {
+    xmlExportButton.disabled = false;
+    xmlExportButton.textContent = originalText;
+  }
+});
+
+tgSendButton.addEventListener("click", async () => {
+  if (!currentScrape?.id) return;
+  const originalText = tgSendButton.textContent;
+  try {
+    tgSendButton.disabled = true;
+    tgSendButton.textContent = "Sending...";
+    setStatus("Broadcasting to Telegram...");
+    const response = await fetch(`/api/scrapes/${encodeURIComponent(currentScrape.id)}/send-to-tg`, {
+      method: "POST"
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to send");
+    setStatus(data.message || "Broadcasted!");
+  } catch (error) {
+    setStatus(error.message || "Failed to send");
+  } finally {
+    tgSendButton.disabled = false;
+    tgSendButton.textContent = originalText;
+  }
 });
 
 notionRefreshButton.addEventListener("click", async () => {

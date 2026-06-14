@@ -27,7 +27,7 @@ TGGROUP_LINK: str = os.environ.get("TGGROUPLINK", "").strip()
 FILE_BASE_LOCAL = "http://tgbotapi:8081/file"
 FILE_BASE_REMOTE = "https://api.telegram.org/file"
 
-BASE_ROOT = Path(os.environ.get("BASE_ROOT", "./downloads"))
+BASE_ROOT = Path(os.environ.get("BASE_ROOT", "C:\\Users\\Nemifist\\YandexDisk\\PAMPAM"))
 BASE_ROOT.mkdir(parents=True, exist_ok=True)
 
 ALLOWED = {int(x.strip()) for x in os.environ.get("ALLOWED_CHAT_IDS", "").split(",") if x.strip()}
