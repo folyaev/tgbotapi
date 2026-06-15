@@ -21,7 +21,6 @@
         <option value="">Latest</option>
       </select>
       <button id="notion-refresh" type="button" disabled title="Refresh Notion">↻</button>
-      <button id="restore-latest" type="button" disabled title="Restore previous refresh">↩</button>
       <button id="xml-export" type="button" disabled>XML</button>
       <button id="tg-send" type="button" disabled title="Транслировать в Telegram">TG</button>
     </header>
@@ -38,8 +37,11 @@
           <button id="media-picker-close" type="button">×</button>
         </div>
         <div class="media-picker-actions">
-          <button id="media-upload-button" type="button">Upload file</button>
-          <input id="media-upload-input" type="file" hidden />
+          <div id="media-upload-dropzone" class="media-upload-dropzone">
+            <span class="dropzone-icon">📁</span>
+            <span class="dropzone-text">Перетащите файлы сюда или нажмите для выбора</span>
+            <input id="media-upload-input" type="file" hidden />
+          </div>
         </div>
         <form id="media-download-form" class="media-download-form">
           <input id="media-download-url" type="url" placeholder="Media URL" autocomplete="off" />

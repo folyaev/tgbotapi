@@ -6,12 +6,11 @@ const selectEl = document.querySelector("#scrape-select");
 const xmlExportButton = document.querySelector("#xml-export");
 const tgSendButton = document.querySelector("#tg-send");
 const notionRefreshButton = document.querySelector("#notion-refresh");
-const restoreLatestButton = document.querySelector("#restore-latest");
 const mediaPickerEl = document.querySelector("#media-picker");
 const mediaPickerTopicEl = document.querySelector("#media-picker-topic");
 const mediaPickerListEl = document.querySelector("#media-picker-list");
 const mediaPickerCloseButton = document.querySelector("#media-picker-close");
-const mediaUploadButton = document.querySelector("#media-upload-button");
+const mediaUploadDropzone = document.querySelector("#media-upload-dropzone");
 const mediaUploadInput = document.querySelector("#media-upload-input");
 const mediaDownloadForm = document.querySelector("#media-download-form");
 const mediaDownloadUrlInput = document.querySelector("#media-download-url");
@@ -272,7 +271,6 @@ function renderDocument() {
   xmlExportButton.disabled = !currentScrape?.id;
   tgSendButton.disabled = !currentScrape?.id;
   notionRefreshButton.disabled = !currentScrape?.id || !currentScrape?.url;
-  restoreLatestButton.disabled = !currentScrape?.id;
   autosizeTextareas();
   focusPendingSegment();
   loadPreviews();
@@ -471,19 +469,50 @@ function mediaForFile(file) {
   };
 }
 
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      const base64 = dataUrl.split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function checkGraphicsFile(fileName) {
+  try {
+    const response = await fetch(`/api/media/check-graphics?name=${encodeURIComponent(fileName)}`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.exists) {
+        return data.file;
+      }
+    }
+  } catch (error) {
+    console.error("Graphics pre-flight check failed:", error);
+  }
+  return null;
+}
+
 async function uploadMediaFileToSegment(file, segmentId, topic = "") {
   if (!file || !segmentId) return null;
-  const buffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let index = 0; index < bytes.length; index += 1) binary += String.fromCharCode(bytes[index]);
+  const fileName = file.name || defaultClipboardFileName(file);
+  const existing = await checkGraphicsFile(fileName);
+  if (existing) {
+    await addMediaToSegment(segmentId, mediaForFile(existing));
+    return existing;
+  }
+  const base64 = await fileToBase64(file);
   const response = await fetch("/api/media/upload", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       topic: topicForSegment(segmentId, topic),
-      fileName: file.name || defaultClipboardFileName(file),
-      dataBase64: btoa(binary)
+      fileName: fileName,
+      dataBase64: base64
     })
   });
   const data = await response.json();
@@ -667,6 +696,10 @@ async function loadScrape(id = "") {
   renderDocument();
   setStatus(`${currentScrape.title || currentScrape.id} - ${currentLines.length} lines`);
   input.value = currentScrape.url || "";
+
+  // Auto-broadcast to Telegram when loading/switching a script
+  fetch(`/api/scrapes/${encodeURIComponent(currentScrape.id)}/send-to-tg`, { method: "POST" })
+    .catch(err => console.error("[tg-broadcast] Auto-broadcast failed:", err));
 }
 
 async function refreshScrapeList() {
@@ -781,22 +814,53 @@ mediaPickerEl.addEventListener("click", (event) => {
   if (event.target === mediaPickerEl) closeMediaPicker();
 });
 
-mediaUploadButton.addEventListener("click", () => {
-  mediaUploadInput.click();
-});
-
-mediaUploadInput.addEventListener("change", async () => {
-  const file = mediaUploadInput.files?.[0];
+async function handleFileSelected(file) {
   if (!file) return;
-  mediaUploadButton.disabled = true;
+  mediaUploadDropzone.classList.add("is-uploading");
+  const textEl = mediaUploadDropzone.querySelector(".dropzone-text");
+  const originalText = textEl?.textContent || "Перетащите файлы сюда или нажмите для выбора";
+  if (textEl) textEl.textContent = `Загрузка: ${file.name}...`;
   try {
     await uploadMediaFile(file);
   } catch (error) {
     setStatus(error.message || "Upload failed");
   } finally {
-    mediaUploadButton.disabled = false;
+    if (textEl) textEl.textContent = originalText;
+    mediaUploadDropzone.classList.remove("is-uploading");
+    mediaUploadInput.value = "";
   }
+}
+
+mediaUploadDropzone.addEventListener("click", () => {
+  mediaUploadInput.click();
 });
+
+mediaUploadInput.addEventListener("change", () => {
+  const file = mediaUploadInput.files?.[0];
+  if (file) handleFileSelected(file);
+});
+
+["dragenter", "dragover"].forEach((eventName) => {
+  mediaUploadDropzone.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    mediaUploadDropzone.classList.add("is-dragover");
+  }, false);
+});
+
+["dragleave", "drop"].forEach((eventName) => {
+  mediaUploadDropzone.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    mediaUploadDropzone.classList.remove("is-dragover");
+  }, false);
+});
+
+mediaUploadDropzone.addEventListener("drop", (e) => {
+  const dt = e.dataTransfer;
+  const file = dt.files?.[0];
+  if (file) handleFileSelected(file);
+}, false);
 
 mediaDownloadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -926,7 +990,6 @@ tgSendButton.addEventListener("click", async () => {
 notionRefreshButton.addEventListener("click", async () => {
   if (!currentScrape?.id) return;
   notionRefreshButton.disabled = true;
-  restoreLatestButton.disabled = true;
   setStatus("refreshing Notion...");
   try {
     const response = await fetch(`/api/scrapes/${encodeURIComponent(currentScrape.id)}/refresh`, {
@@ -945,31 +1008,6 @@ notionRefreshButton.addEventListener("click", async () => {
     setStatus(error.message || "Refresh failed");
   } finally {
     notionRefreshButton.disabled = !currentScrape?.id || !currentScrape?.url;
-    restoreLatestButton.disabled = !currentScrape?.id;
-  }
-});
-
-restoreLatestButton.addEventListener("click", async () => {
-  if (!currentScrape?.id) return;
-  restoreLatestButton.disabled = true;
-  setStatus("restoring...");
-  try {
-    const response = await fetch(`/api/scrapes/${encodeURIComponent(currentScrape.id)}/restore-latest`, {
-      method: "POST"
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Restore failed");
-    currentScrape = data.scrape;
-    currentLines = String(currentScrape.content ?? "").split(/\r?\n/);
-    currentSegments = Array.isArray(currentScrape.segments) ? currentScrape.segments : [];
-    renderDocument();
-    setStatus("restored");
-    await refreshScrapeList();
-    selectEl.value = currentScrape.id;
-  } catch (error) {
-    setStatus(error.message || "Restore failed");
-  } finally {
-    restoreLatestButton.disabled = !currentScrape?.id;
   }
 });
 

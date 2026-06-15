@@ -328,6 +328,25 @@ function sanitizeFileName(value, fallback = "file") {
   return `${stem || fallback}${ext || ""}`;
 }
 
+function makeFileNameUnique(fileName) {
+  const parsed = path.parse(fileName);
+  const genericPatterns = [
+    /^image/i,
+    /^img/i,
+    /^file/i,
+    /^clipboard/i,
+    /^photo/i,
+    /^screenshot/i
+  ];
+  const isGeneric = genericPatterns.some((pat) => pat.test(parsed.name));
+  if (isGeneric) {
+    const stamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
+    const suffix = Math.random().toString(36).slice(2, 8);
+    return `${parsed.name}_${stamp}_${suffix}${parsed.ext}`;
+  }
+  return fileName;
+}
+
 function safeResolveMediaPath(relativePath) {
   const clean = String(relativePath ?? "").replace(/^[/\\]+/, "");
   if (!clean) return "";
@@ -447,6 +466,16 @@ function normalizeHttpUrl(rawUrl) {
   }
 }
 
+function isXOrTwitter(urlStr) {
+  try {
+    const parsed = new URL(urlStr);
+    const host = parsed.hostname.toLowerCase();
+    return host === "x.com" || host === "twitter.com" || host.endsWith(".x.com") || host.endsWith(".twitter.com");
+  } catch {
+    return false;
+  }
+}
+
 function makeJobId() {
   return `job_${Date.now().toString(36)}_${createHash("sha1").update(`${Date.now()}_${Math.random()}`).digest("hex").slice(0, 8)}`;
 }
@@ -543,7 +572,8 @@ async function downloadDirectFile(job, url, topic, dir) {
   const parsed = new URL(url);
   const baseName = sanitizeFileName(decodeURIComponent(path.basename(parsed.pathname || "")), "download");
   const ext = path.extname(baseName) || ".bin";
-  const fileName = sanitizeFileName(`${path.parse(baseName).name || "download"}${ext}`, "download");
+  const rawFileName = sanitizeFileName(`${path.parse(baseName).name || "download"}${ext}`, "download");
+  const fileName = makeFileNameUnique(rawFileName);
   const target = path.join(dir, fileName);
   const body = Buffer.from(await response.arrayBuffer());
   await fs.writeFile(target, body);
@@ -609,13 +639,35 @@ async function executeMediaDownload(job) {
       updateJob(job, { state: "completed", progress: 100, output_files: outputFiles });
       return;
     }
+    let downloadSucceeded = false;
+    let ytDlpError = null;
+
     try {
       await runYtDlpDownload(job, tools, job.url, dir);
+      const afterYt = await listNewOutputFiles(safeTopic, dir, before);
+      if (afterYt.length > 0) {
+        downloadSucceeded = true;
+      } else {
+        ytDlpError = new Error("yt-dlp completed but produced no output files");
+      }
     } catch (error) {
-      if (!tools.gallery_dl_path) throw error;
-      updateJob(job, { log: `${job.log || ""}\nyt-dlp failed, trying gallery-dl: ${error.message}`.slice(-2000) });
-      await runGalleryDlDownload(job, tools, job.url, dir);
+      ytDlpError = error;
     }
+
+    if (!downloadSucceeded && tools.gallery_dl_path) {
+      const reason = ytDlpError ? ytDlpError.message : "no files produced";
+      updateJob(job, { log: `${job.log || ""}\nyt-dlp failed or got no media (${reason}), trying gallery-dl fallback...`.slice(-2000) });
+      try {
+        await runGalleryDlDownload(job, tools, job.url, dir);
+        downloadSucceeded = true;
+      } catch (error) {
+        throw new Error(ytDlpError ? `${ytDlpError.message} | gallery-dl: ${error.message}` : error.message);
+      }
+    } else if (!downloadSucceeded) {
+      if (ytDlpError) throw ytDlpError;
+      throw new Error("No media downloader tools succeeded");
+    }
+
     const outputFiles = await listNewOutputFiles(safeTopic, dir, before);
     if (!outputFiles.length) throw new Error("Download finished, but no media output files were found");
     updateJob(job, { state: "completed", progress: 100, output_files: outputFiles });
@@ -1300,7 +1352,8 @@ async function handleMediaLibrary(reqUrl, res) {
 async function handleMediaUpload(req, res) {
   const body = await readBody(req);
   const topic = String(body.topic || "").trim();
-  const fileName = sanitizeFileName(body.fileName, "upload");
+  const rawFileName = sanitizeFileName(body.fileName, "upload");
+  const fileName = makeFileNameUnique(rawFileName);
   const dataBase64 = String(body.dataBase64 || "");
   if (!dataBase64) {
     json(res, 400, { error: "dataBase64 is required" });
@@ -1321,6 +1374,32 @@ async function handleMediaUpload(req, res) {
       thumbnail: isImageFile(relPath) ? `/api/media/raw?path=${encodeURIComponent(relPath)}` : ""
     }
   });
+}
+
+async function handleCheckGraphics(reqUrl, res) {
+  const fileName = sanitizeFileName(reqUrl.searchParams.get("name") || "", "file");
+  if (!fileName || fileName === "file") {
+    json(res, 200, { exists: false });
+    return;
+  }
+  const target = path.join(PAMPAM_ROOT, "graphics", fileName);
+  try {
+    const stats = await fs.stat(target);
+    const relPath = `graphics/${fileName}`;
+    json(res, 200, {
+      exists: true,
+      file: {
+        path: relPath,
+        name: fileName,
+        topic: "graphics",
+        size: stats.size,
+        updated_at: stats.mtime.toISOString(),
+        thumbnail: isImageFile(relPath) ? `/api/media/raw?path=${encodeURIComponent(relPath)}` : ""
+      }
+    });
+  } catch {
+    json(res, 200, { exists: false });
+  }
 }
 
 async function handleMediaRaw(reqUrl, res) {
@@ -1560,6 +1639,10 @@ async function handleRequest(req, res) {
     }
     if (req.method === "GET" && reqUrl.pathname === "/api/media/raw") {
       await handleMediaRaw(reqUrl, res);
+      return;
+    }
+    if (req.method === "GET" && reqUrl.pathname === "/api/media/check-graphics") {
+      await handleCheckGraphics(reqUrl, res);
       return;
     }
     if (req.method === "POST" && reqUrl.pathname === "/api/media/upload") {

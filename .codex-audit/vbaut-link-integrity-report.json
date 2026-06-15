@@ -9,7 +9,7 @@
       "doc_2026-06-07T23-58-23-135Z_3ZHpq5"
     ],
     "max_historical_links": 34,
-    "generated_at": "2026-06-14T22:15:14.475Z"
+    "generated_at": "2026-06-15T18:15:16.285Z"
   },
   "results": [
     {
@@ -99,18 +99,38 @@
     },
     {
       "doc_id": "doc_2026-06-07T23-58-23-135Z_3ZHpq5",
-      "versions_scanned": 21,
+      "versions_scanned": 22,
       "current": {
-        "segment_count": 116,
-        "link_block_count": 24,
-        "total_links": 30
+        "segment_count": 122,
+        "link_block_count": 27,
+        "total_links": 33
       },
       "historical": {
-        "section_count": 3,
-        "total_unique_links": 6
+        "section_count": 4,
+        "total_unique_links": 7
       },
       "sections_missing_link_blocks": [],
       "sections_with_missing_urls": [
+        {
+          "section_id": "section_1uvtwzg_01",
+          "section_title": "Штраф шведам",
+          "segment_id": "links_section_1uvtwzg_01_004",
+          "current_url_count": 1,
+          "historical_url_count": 2,
+          "missing_urls": [
+            "https://www.vedomosti.ru/society/news/2026/06/12/1205473-treh-shvedov-oshtrafovali"
+          ]
+        },
+        {
+          "section_id": "section_8amryl_01",
+          "section_title": "IPO spaceX",
+          "segment_id": "links_section_8amryl_01_006",
+          "current_url_count": 1,
+          "historical_url_count": 2,
+          "missing_urls": [
+            "https://www.rbc.ru/business/13/06/2026/6a2ce53f9a7947e2242f17ec?utm_referrer=https%3A%2F%2Fwww.google.com%2F"
+          ]
+        },
         {
           "section_id": "section_nbviia_01",
           "section_title": "500 млн Биста",
@@ -122,7 +142,7 @@
           ]
         }
       ],
-      "current_total_links_across_historical_sections": 5,
+      "current_total_links_across_historical_sections": 4,
       "suspicious": true
     }
   ]
